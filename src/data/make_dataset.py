@@ -1,34 +1,28 @@
-# -*- coding: utf-8 -*-
-import click
-import logging
-from pathlib import Path
-from dotenv import find_dotenv, load_dotenv
+import os
+import pandas as pd
+from typing import Any, Dict
 
 
-@click.command()
-@click.argument('input_filepath', type=click.Path(exists=True))
-@click.argument('output_filepath', type=click.Path())
-def main(input_filepath, output_filepath):
-    """ Runs data processing scripts to turn raw data from (../raw) into
-        cleaned data ready to be analyzed (saved in ../processed).
+# def import_csvs(directory: str, **kwargs: str) -> Dict[str, pd.DataFrame]:
+def import_csvs(
+        directory: str, **kwargs: Dict[str, Any]) -> Dict[str, pd.DataFrame]:
+    """ Given a directory, returns a filename-indexed list of DataFrames pulled
+    from csv files in the directory. Note that kwargs can be provided, but in
+    this implementation, they must all apply to each csv file.
+
+    - directory: the path to the directory of interest.
+    - kwargs: kwargs to pass to pd.read_csv.
+    - return value: a dictionary where keys are names of the csv files in the
+      target directory, and values are the DataFrame version of the csvs.
     """
-    logger = logging.getLogger(__name__)
-    logger.info('making final data set from raw data')
 
+    dataframes: Dict[str, pd.DataFrame] = {}
 
-def addfunc(x, y):
-    return x + y
+    # Read csv files into dictionary 'dataframes' keyed by file name
+    for file_name in os.listdir(directory):
+        if file_name.endswith('.csv'):
+            file_path = os.path.join(directory, file_name)
+            df = pd.read_csv(file_path, **kwargs)
+            dataframes[file_name] = df
 
-
-if __name__ == '__main__':
-    log_fmt = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-    logging.basicConfig(level=logging.INFO, format=log_fmt)
-
-    # not used in this stub but often useful for finding various files
-    project_dir = Path(__file__).resolve().parents[2]
-
-    # find .env automagically by walking up directories until it's found, then
-    # load up the .env entries as environment variables
-    load_dotenv(find_dotenv())
-
-    main()
+    return dataframes
