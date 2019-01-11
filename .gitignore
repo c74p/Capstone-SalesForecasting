@@ -76,7 +76,9 @@ target/
 .ipynb_checkpoints/
 
 # exclude data from source control by default
-/data/
+# I'm modifying this to only ignore zip files (per Github directions)
+/data/*.tgz
+/data/*.zip
 
 # Mac OS-specific storage files
 .DS_Store
