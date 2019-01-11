@@ -1,0 +1,11 @@
+{
+  "author": "",
+  "id": "data_wrangling",
+  "name": "data_wrangling",
+  "naming_scheme": "S{{##}}-{{name}}.{{ext}}",
+  "steps": [
+    "S01-import.py"
+  ],
+  "summary": "",
+  "title": "Data wrangling"
+}
