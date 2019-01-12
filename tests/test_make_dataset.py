@@ -2,28 +2,45 @@ import os
 import pandas as pd
 from src.data import make_dataset
 from typing import Dict, Any
-
-# Config filepaths
-PROJ_ROOT = os.path.abspath(os.pardir)
-directory = os.path.join(PROJ_ROOT, 'data', 'raw')
-
-# Config kwargs for test_import_csvs
-kwargs: Dict[str, Any] = {'header': 0, 'low_memory': False}
+import unittest
 
 
-def test_import_csvs_pulls_all_csvs():
-    print(directory)
-    dict_of_dataframes = make_dataset.import_csvs(directory, **kwargs)
-    for filename in os.listdir(directory):
-        if filename.endswith('.csv'):
-            assert filename in dict_of_dataframes
+class test_XXX_Test_Group_Name(unittest.TestCase):
+    def setUp(self):
+        # Config filepaths
+        PROJ_ROOT = os.path.abspath(os.pardir)
+        self.directory = os.path.join(PROJ_ROOT, 'data', 'raw')
 
-    # TURN THIS INTO A TESTCASE SO WE ONLY PULL THE CSVS ONCE 
+        # Config kwargs for test_import_csvs
+        self.kwargs: Dict[str, Any] = {'header': 0, 'low_memory': False}
 
+        self.dict_of_dataframes = make_dataset.import_csvs(self.directory,
+                                                           **self.kwargs)
 
+    def tearDown(self):
+        pass
 
+    def test_XXX_Test_Name(self):
+        pass
+        # raise NotImplementedError('Insert test code here.')
+        #  Examples:
+        # self.assertEqual(fp.readline(), 'This is a test')
+        # self.assertFalse(os.path.exists('a'))
+        # self.assertTrue(os.path.exists('a'))
+        # self.assertTrue('already a backup server' in c.stderr)
+        # self.assertIn('fun', 'disfunctional')
+        # self.assertNotIn('crazy', 'disfunctional')
+        # with self.assertRaises(Exception):
+        #   raise Exception('test')
+        #
+        # Unconditionally fail, e.g. in a try block that should raise
+        # self.fail('Exception was not raised')
 
-    # pass
+    def test_import_csvs_pulls_all_csvs(self):
+        for filename in os.listdir(self.directory):
+            if filename.endswith('.csv'):
+                self.assertIn(filename, self.dict_of_dataframes)
+
     # Want import_csvs() to:
     # - Find and import all the csv files in the directory
     # What could go wrong?

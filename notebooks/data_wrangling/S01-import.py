@@ -11,9 +11,11 @@ cd.display.markdown(
     """
     )
 
-# Read files in the directory into shared cauldron memory and display them
+# Config filepaths
 PROJ_ROOT = os.path.abspath(os.path.join(os.pardir, os.pardir))
 directory = os.path.join(PROJ_ROOT, 'data', 'raw')
+
+# Read csv files in the directory into shared cauldron memory and display them
 for file_name in os.listdir(directory):
     # Ignore file test.csv since we don't have target values for it
     if file_name.endswith('.csv') and file_name != 'test.csv':
