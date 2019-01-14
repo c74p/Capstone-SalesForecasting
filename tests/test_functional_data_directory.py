@@ -12,7 +12,8 @@ from src.data import make_dataset
 # User gets a note that all files expected to be found, were found
 
 # Config filepaths
-PROJ_ROOT = os.path.abspath(os.path.join(os.pardir, os.pardir))
+# PROJ_ROOT = os.path.abspath(os.path.join(os.pardir, os.pardir))
+PROJ_ROOT = os.path.abspath(os.getcwd())
 directory = os.path.join(PROJ_ROOT, 'data', 'raw')
 
 df = make_dataset.import_csvs(directory)

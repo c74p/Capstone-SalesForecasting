@@ -40,10 +40,13 @@ class test_Import_Csvs(TestCase):
 
     def test_import_csvs_can_ignore_files_as_list(self):
         with mock.patch('os.listdir', return_value=self.fake_files):
-            with mock.patch('pandas.read_csv', side_effect=self.fake_read):
+            with mock.patch('pandas.read_csv',
+                            side_effect=self.fake_read) as mock_pandas:
                 read = make_dataset.import_csvs('bogus_dir',
                                                 ignore_files=['b.csv'])
                 assert read == {'a.csv': '', 'c.csv': ''}
+                # assert 'ignore_files' not in kwargs
+                mock_pandas.assert_called_with('bogus_dir/c.csv')
 
     def test_merge_all_csvs(self):
         pass
