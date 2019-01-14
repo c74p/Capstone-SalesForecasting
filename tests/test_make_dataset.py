@@ -1,24 +1,64 @@
-import os
-import pandas as pd
 from src.data import make_dataset
-from typing import Dict, Any
-import unittest
+from unittest import TestCase, mock
 
 
-class test_XXX_Test_Group_Name(unittest.TestCase):
+class test_Import_Csvs(TestCase):
+
     def setUp(self):
-        # Config filepaths
-        PROJ_ROOT = os.path.abspath(os.pardir)
-        self.directory = os.path.join(PROJ_ROOT, 'data', 'raw')
 
-        # Config kwargs for test_import_csvs
-        self.kwargs: Dict[str, Any] = {'header': 0, 'low_memory': False}
+        # Config file directory and read_csv return values for mock
+        self.fake_files = ['a.csv', 'b.csv', 'c.csv']
+        self.fake_read = ['', '', '']
 
-        self.dict_of_dataframes = make_dataset.import_csvs(self.directory,
-                                                           **self.kwargs)
+        # Config empty directory and read_csv return values for mock
+        self.fake_empty_files = []
+        self.fake_empty_read = ['', '', '']
 
     def tearDown(self):
         pass
+
+    def test_import_csvs_pulls_all_csvs(self):
+        with mock.patch('os.listdir', return_value=self.fake_files):
+            with mock.patch('pandas.read_csv', side_effect=self.fake_read):
+                read = make_dataset.import_csvs('bogus_dir')
+                assert read == {k: v for k, v in
+                                zip(self.fake_files, self.fake_read)}
+
+    def test_import_csvs_pulls_no_csvs_from_empty_directory(self):
+        with mock.patch('os.listdir', return_value=self.fake_empty_files):
+            with mock.patch('pandas.read_csv',
+                            side_effect=self.fake_empty_read):
+                read = make_dataset.import_csvs('bogus_dir')
+                assert read == {}
+
+    def test_import_csvs_can_ignore_files(self):
+        with mock.patch('os.listdir', return_value=self.fake_files):
+            with mock.patch('pandas.read_csv', side_effect=self.fake_read):
+                read = make_dataset.import_csvs('bogus_dir',
+                                                ignore_files='b.csv')
+                assert read == {'a.csv': '', 'c.csv': ''}
+
+    def test_import_csvs_can_ignore_files_as_list(self):
+        with mock.patch('os.listdir', return_value=self.fake_files):
+            with mock.patch('pandas.read_csv', side_effect=self.fake_read):
+                read = make_dataset.import_csvs('bogus_dir',
+                                                ignore_files=['b.csv'])
+                assert read == {'a.csv': '', 'c.csv': ''}
+
+    def test_merge_all_csvs(self):
+        pass
+    # Want merge_all_csvs() to:
+    # - merge all the csvs together into one, appropriately
+    # What could go wrong?
+    # - Not all the csvs could be there
+
+    def test_verify_csv_pull(self):
+        pass
+    # Want verify_csv_pull() to:
+    # - Check the csv pull and send a message to user
+    #   - Either pull was successful, or pull failed, why, and what to do next
+    # What could go wrong?
+    # - Not all the csvs could be there
 
     def test_XXX_Test_Name(self):
         pass
@@ -35,33 +75,3 @@ class test_XXX_Test_Group_Name(unittest.TestCase):
         #
         # Unconditionally fail, e.g. in a try block that should raise
         # self.fail('Exception was not raised')
-
-    def test_import_csvs_pulls_all_csvs(self):
-        for filename in os.listdir(self.directory):
-            if filename.endswith('.csv'):
-                self.assertIn(filename, self.dict_of_dataframes)
-
-    # Want import_csvs() to:
-    # - Find and import all the csv files in the directory
-    # What could go wrong?
-    # - How do we know they're imported?
-    # - What if there are no csv files in there?
-    # - What if there are unused csvs in there? (We don't care)
-    # - What if all the right csvs are not in there?
-
-
-def test_merge_all_csvs():
-    pass
-    # Want merge_all_csvs() to:
-    # - merge all the csvs together into one, appropriately
-    # What could go wrong?
-    # - Not all the csvs could be there
-
-
-def test_verify_csv_pull():
-    pass
-    # Want verify_csv_pull() to:
-    # - Check the csv pull and send a message to user
-    #   - Either pull was successful, or pull failed, why, and what to do next
-    # What could go wrong?
-    # - Not all the csvs could be there
