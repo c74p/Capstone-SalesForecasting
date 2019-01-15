@@ -18,6 +18,7 @@ class test_Import_Csvs(TestCase):
         pass
 
     def test_import_csvs_pulls_all_csvs(self):
+        """All available csvs in the directory should be pulled"""
         with mock.patch('os.listdir', return_value=self.fake_files):
             with mock.patch('pandas.read_csv', side_effect=self.fake_read):
                 read = make_dataset.import_csvs('bogus_dir')
@@ -25,6 +26,7 @@ class test_Import_Csvs(TestCase):
                                 zip(self.fake_files, self.fake_read)}
 
     def test_import_csvs_pulls_no_csvs_from_empty_directory(self):
+        """Nothing should be returned from an empty directory"""
         with mock.patch('os.listdir', return_value=self.fake_empty_files):
             with mock.patch('pandas.read_csv',
                             side_effect=self.fake_empty_read):
@@ -32,6 +34,7 @@ class test_Import_Csvs(TestCase):
                 assert read == {}
 
     def test_import_csvs_can_ignore_files(self):
+        """A single 'ignore_files=' file should be ignored"""
         with mock.patch('os.listdir', return_value=self.fake_files):
             with mock.patch('pandas.read_csv', side_effect=self.fake_read):
                 read = make_dataset.import_csvs('bogus_dir',
@@ -39,6 +42,7 @@ class test_Import_Csvs(TestCase):
                 assert read == {'a.csv': '', 'c.csv': ''}
 
     def test_import_csvs_can_ignore_files_as_list(self):
+        """A list of 'ignore_files=' files should be ignored"""
         with mock.patch('os.listdir', return_value=self.fake_files):
             with mock.patch('pandas.read_csv',
                             side_effect=self.fake_read) as mock_pandas:

@@ -4,7 +4,8 @@
   "name": "data_wrangling",
   "naming_scheme": "S{{##}}-{{name}}.{{ext}}",
   "steps": [
-    "S01-import.py"
+    "S01-import.py",
+    "S02.py"
   ],
   "summary": "",
   "title": "Data wrangling"
