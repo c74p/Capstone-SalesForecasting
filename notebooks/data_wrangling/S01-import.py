@@ -19,11 +19,15 @@ cd.display.markdown(
 PROJ_ROOT = os.path.abspath(os.path.join(os.pardir, os.pardir))
 cd.shared.directory = os.path.join(PROJ_ROOT, 'data', 'raw')
 
-# Pull in all csvs, ignoring test.csv because no target-variable data there
-dfs = make_dataset.import_csvs(cd.shared.directory, ignore_files=['test.csv'],
-                               header=0, low_memory=False)
+# Pull in all csvs, ignoring test.csv and submission.csv because no
+# target-variable data in those
+dfs = make_dataset.import_csvs(cd.shared.directory, ignore_files=['test.csv',
+                               'sample_submission.csv'], header=0,
+                               low_memory=False)
 
 for name in dfs.keys():
     print(name + ':')
     cd.display.table(dfs[name].head())
-    cd.shared.put(name, dfs[name])
+    # cd.shared.put(name, dfs[name])
+
+cd.shared.put('dfs', dfs)

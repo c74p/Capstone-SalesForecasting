@@ -1,6 +1,7 @@
 import cauldron as cd
 from cauldron.steptest import StepTestCase
 import os
+import pandas as pd
 import sys
 from typing import List
 from unittest import mock
@@ -26,11 +27,15 @@ class TestNotebook_Data_Wrangling_S01(StepTestCase):
 
         self.run_step('S01-import.py')
 
-        for variable in files:
-            pulled = cd.shared.fetch(variable)
+        # Simply check that each file in files is pulled
+        # Note that our /tests testing checks that the pull itself is correct
+        # after merging
+        for file in files:
+            pulled: pd.DataFrame = cd.shared.fetch(file)
             assert pulled is not None
-            csvs_pulled.append(variable)
+            csvs_pulled.append(file)
 
+        # not technically necessary but we already invested 5s in this
         assert csvs_pulled == files
 
     def test_with_mock(self):
@@ -50,11 +55,9 @@ class TestNotebook_Data_Wrangling_S01(StepTestCase):
 
         directory = cd.shared.fetch('directory')
 
-        files_mock_pulled = [file for file in os.listdir(directory) if
-                             file.endswith('.csv') and file != 'test.csv']
-
-        print(directory)
+        files_mock_pulled: List[str] = [file for file in os.listdir(directory)
+                                        if file.endswith('.csv') and
+                                        file != 'test.csv']
 
         for file in files_to_pull:
-            print(file)
             assert file in files_mock_pulled
