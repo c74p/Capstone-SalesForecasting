@@ -1,0 +1,44 @@
+{
+    "creation_metadata": {
+        "local_time": "2019-01-18 13:13:28",
+        "utc_time": "2019-01-18 18:18:28",
+        "creator": "TDDA 1.0.13",
+        "source": "store_states.csv",
+        "host": "localhost.localdomain",
+        "user": "chachi",
+        "dataset": "store_states.csv",
+        "n_records": 1115,
+        "n_selected": 1115,
+        "tddafile": "../interim/constraints_initial_csvs/store_states_constraints.tdda"
+    },
+    "fields": {
+        "Store": {
+            "type": "int",
+            "min": 1,
+            "max": 1115,
+            "sign": "positive",
+            "max_nulls": 0,
+            "no_duplicates": true
+        },
+        "State": {
+            "type": "string",
+            "min_length": 2,
+            "max_length": 5,
+            "max_nulls": 0,
+            "allowed_values": [
+                "BE",
+                "BW",
+                "BY",
+                "HB,NI",
+                "HE",
+                "HH",
+                "NW",
+                "RP",
+                "SH",
+                "SN",
+                "ST",
+                "TH"
+            ]
+        }
+    }
+}

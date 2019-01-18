@@ -1,0 +1,66 @@
+{
+    "creation_metadata": {
+        "local_time": "2019-01-18 13:13:56",
+        "utc_time": "2019-01-18 18:18:56",
+        "creator": "TDDA 1.0.13",
+        "source": "state_names.csv",
+        "host": "localhost.localdomain",
+        "user": "chachi",
+        "dataset": "state_names.csv",
+        "n_records": 16,
+        "n_selected": 16,
+        "tddafile": "../interim/constraints_initial_csvs/state_names_constraints.tdda"
+    },
+    "fields": {
+        "StateName": {
+            "type": "string",
+            "min_length": 6,
+            "max_length": 21,
+            "max_nulls": 0,
+            "no_duplicates": true,
+            "allowed_values": [
+                "BadenWuerttemberg",
+                "Bayern",
+                "Berlin",
+                "Brandenburg",
+                "Bremen",
+                "Hamburg",
+                "Hessen",
+                "MecklenburgVorpommern",
+                "Niedersachsen",
+                "NordrheinWestfalen",
+                "RheinlandPfalz",
+                "Saarland",
+                "Sachsen",
+                "SachsenAnhalt",
+                "SchleswigHolstein",
+                "Thueringen"
+            ]
+        },
+        "State": {
+            "type": "string",
+            "min_length": 2,
+            "max_length": 5,
+            "max_nulls": 0,
+            "no_duplicates": true,
+            "allowed_values": [
+                "BB",
+                "BE",
+                "BW",
+                "BY",
+                "HB",
+                "HB,NI",
+                "HE",
+                "HH",
+                "MV",
+                "NW",
+                "RP",
+                "SH",
+                "SL",
+                "SN",
+                "ST",
+                "TH"
+            ]
+        }
+    }
+}

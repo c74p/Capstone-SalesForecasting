@@ -22,22 +22,21 @@ goog: pd.DataFrame = dfs['googletrend.csv']  # no nans
 states: pd.DataFrame = dfs['store_states.csv']  # no nans
 names: pd.DataFrame = dfs['state_names.csv']  # no nans
 stores: pd.DataFrame = dfs['store.csv']  # see below for nans
-weather: pd.DataFrame = dfs['weather.csv']  # see below for nans 
+weather: pd.DataFrame = dfs['weather.csv']  # see below for nans
 
-# Done: state_names.csv, store_states.csv
 # Nulls to deal with:
 #   - Stores - CompetitionDistance fill with mean
 #   - Stores - CompetitionOpenSinceMonth fill with mean
 #   - Stores - CompetitionOpenSinceYear fill with mean
 #   - Stores - Promo2SinceWeek fill with zero
 #   - Stores - Promo2SinceYear fill with zero
-#   - Stores - PromoInterval fill with zero
+#   - Stores - PromoInterval fill with 'None'
 #   - Weather - Max_VisibityKm fill with mean
 #   - Weather - Min_VisibitykM fill with mean
 #   - Weather - Mean_VisibityKm fill with mean
 #   - Weather - Max_Gust_SpeedKm_h fill with mean
 #   - Weather - CloudCover fill with mean
-#   - Weather - CloudCover fill with string 'No events'
+#   - Weather - Events fill with string 'No events'
 
 
 # merge appropriately

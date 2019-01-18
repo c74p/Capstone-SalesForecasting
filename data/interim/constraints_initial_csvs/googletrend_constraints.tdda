@@ -1,0 +1,51 @@
+{
+    "creation_metadata": {
+        "local_time": "2019-01-18 13:13:59",
+        "utc_time": "2019-01-18 18:18:59",
+        "creator": "TDDA 1.0.13",
+        "source": "googletrend.csv",
+        "host": "localhost.localdomain",
+        "user": "chachi",
+        "dataset": "googletrend.csv",
+        "n_records": 2072,
+        "n_selected": 2072,
+        "tddafile": "../interim/constraints_initial_csvs/googletrend_constraints.tdda"
+    },
+    "fields": {
+        "file": {
+            "type": "string",
+            "min_length": 11,
+            "max_length": 14,
+            "max_nulls": 0,
+            "allowed_values": [
+                "Rossmann_DE",
+                "Rossmann_DE_BE",
+                "Rossmann_DE_BW",
+                "Rossmann_DE_BY",
+                "Rossmann_DE_HE",
+                "Rossmann_DE_HH",
+                "Rossmann_DE_NI",
+                "Rossmann_DE_NW",
+                "Rossmann_DE_RP",
+                "Rossmann_DE_SH",
+                "Rossmann_DE_SL",
+                "Rossmann_DE_SN",
+                "Rossmann_DE_ST",
+                "Rossmann_DE_TH"
+            ]
+        },
+        "week": {
+            "type": "date",
+            "min": "2012-12-03 04:12:00",
+            "max": "2015-09-27 23:15:00",
+            "max_nulls": 0
+        },
+        "trend": {
+            "type": "int",
+            "min": 0,
+            "max": 100,
+            "sign": "non-negative",
+            "max_nulls": 0
+        }
+    }
+}

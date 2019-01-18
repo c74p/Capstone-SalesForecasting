@@ -1,0 +1,198 @@
+{
+    "creation_metadata": {
+        "local_time": "2019-01-18 13:13:10",
+        "utc_time": "2019-01-18 18:18:10",
+        "creator": "TDDA 1.0.13",
+        "source": "weather.csv",
+        "host": "localhost.localdomain",
+        "user": "chachi",
+        "dataset": "weather.csv",
+        "n_records": 15840,
+        "n_selected": 15840,
+        "tddafile": "../interim/constraints_initial_csvs/weather_constraints.tdda"
+    },
+    "fields": {
+        "file": {
+            "type": "string",
+            "min_length": 6,
+            "max_length": 21,
+            "max_nulls": 0,
+            "allowed_values": [
+                "BadenWuerttemberg",
+                "Bayern",
+                "Berlin",
+                "Brandenburg",
+                "Bremen",
+                "Hamburg",
+                "Hessen",
+                "MecklenburgVorpommern",
+                "Niedersachsen",
+                "NordrheinWestfalen",
+                "RheinlandPfalz",
+                "Saarland",
+                "Sachsen",
+                "SachsenAnhalt",
+                "SchleswigHolstein",
+                "Thueringen"
+            ]
+        },
+        "Date": {
+            "type": "date",
+            "min": "2013-01-01 00:00:00",
+            "max": "2015-09-17 00:00:00",
+            "max_nulls": 0
+        },
+        "Max_TemperatureC": {
+            "type": "int",
+            "min": -11,
+            "max": 39,
+            "max_nulls": 0
+        },
+        "Mean_TemperatureC": {
+            "type": "int",
+            "min": -13,
+            "max": 31,
+            "max_nulls": 0
+        },
+        "Min_TemperatureC": {
+            "type": "int",
+            "min": -15,
+            "max": 24,
+            "max_nulls": 0
+        },
+        "Dew_PointC": {
+            "type": "int",
+            "min": -14,
+            "max": 25,
+            "max_nulls": 0
+        },
+        "MeanDew_PointC": {
+            "type": "int",
+            "min": -15,
+            "max": 20,
+            "max_nulls": 0
+        },
+        "Min_DewpointC": {
+            "type": "int",
+            "min": -73,
+            "max": 19,
+            "max_nulls": 0
+        },
+        "Max_Humidity": {
+            "type": "int",
+            "min": 44,
+            "max": 100,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "Mean_Humidity": {
+            "type": "int",
+            "min": 30,
+            "max": 100,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "Min_Humidity": {
+            "type": "int",
+            "min": 4,
+            "max": 100,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "Max_Sea_Level_PressurehPa": {
+            "type": "int",
+            "min": 976,
+            "max": 1043,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "Mean_Sea_Level_PressurehPa": {
+            "type": "int",
+            "min": 974,
+            "max": 1040,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "Min_Sea_Level_PressurehPa": {
+            "type": "int",
+            "min": 970,
+            "max": 1038,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "Max_VisibilityKm": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 2,
+            "max_nulls": 0
+        },
+        "Mean_VisibilityKm": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 2,
+            "max_nulls": 0
+        },
+        "Min_VisibilitykM": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 2,
+            "max_nulls": 0
+        },
+        "Max_Wind_SpeedKm_h": {
+            "type": "int",
+            "min": 3,
+            "max": 101,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "Mean_Wind_SpeedKm_h": {
+            "type": "int",
+            "min": 2,
+            "max": 53,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "Max_Gust_SpeedKm_h": {
+            "type": "string",
+            "min_length": 2,
+            "max_length": 3,
+            "max_nulls": 0
+        },
+        "Precipitationmm": {
+            "type": "real",
+            "min": 0.0,
+            "max": 58.93,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "CloudCover": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 2,
+            "max_nulls": 0,
+            "allowed_values": [
+                "0",
+                "1",
+                "2",
+                "3",
+                "4",
+                "5",
+                "6",
+                "7",
+                "8",
+                "NA"
+            ]
+        },
+        "Events": {
+            "type": "string",
+            "min_length": 3,
+            "max_length": 27
+        },
+        "WindDirDegrees": {
+            "type": "int",
+            "min": -1,
+            "max": 360,
+            "max_nulls": 0
+        }
+    }
+}

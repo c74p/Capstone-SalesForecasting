@@ -30,6 +30,7 @@ MarkupSafe==1.1.0
 matplotlib==3.0.2
 mccabe==0.6.1
 more-itertools==5.0.0
+mypy==0.650
 numpy==1.15.4
 packaging==18.0
 pandas==0.23.4
