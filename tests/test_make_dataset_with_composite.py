@@ -1,8 +1,8 @@
 import datetime
-from hypothesis import assume, HealthCheck, given, settings
+from hypothesis import given, HealthCheck, settings
 from hypothesis.extra.pandas import column, data_frames
-from hypothesis.strategies import builds, composite, datetimes, integers
-from hypothesis.strategies import sampled_from, text, tuples, characters
+from hypothesis.strategies import composite, datetimes, integers, just, lists
+from hypothesis.strategies import sampled_from
 import numpy as np
 import pandas as pd
 from src.data import make_dataset
@@ -88,51 +88,47 @@ def fake_dfs2(draw):
 state_abbreviations = ["BB", "BE", "BW", "BY", "HB", "HB,NI", "HE", "HH", "MV",
                        "NW", "RP", "SH", "SL", "SN", "ST", "TH"]
 
+rectangle_lists = integers(min_value=0, max_value=10).flatmap(
+    lambda n: lists(lists(integers(), min_size=n, max_size=n)))
+
 
 @composite
 def create_dataframes(draw):
-    # def get_store_state_date_tuple(draw):
-    """Strategy for creating (store, state, date) tuples, where each tuple is
-    unique but stores, states, and dates individually can be repeated."""
+    """Generate dataframes for property-based testing."""
 
-    #class Sstuple(object):
-    #    def __init__(self, store, state):
-    #        self.store = store
-    #        self.state = state
-
+    # Strategies to be used in creating dataframes
     stores = integers(min_value=0, max_value=2000)
     states = sampled_from(state_abbreviations)
-    # The two lines below check that each (store, state) tuple is unique, so we
-    # don't claim a store is in more than one state. If it's unique, it adds
-    # it to store_state_tuples (no return value, thus the 'or') and then
-    # returns it to the caller
-    # store_state_tuples = set()
-    # store_state_tuple = tuples(store_init, state_init)\
-    #     .filter(lambda t: t not in store_state_tuples)\
-    #     .map(lambda t: store_state_tuples.add(t) or t)
-    # store, state = draw(store_state_tuple)
-    # store, state = store_state_tuple
-    date = datetimes(min_value=datetime.datetime(2013, 1, 1),
-                     max_value=datetime.datetime(2015, 12, 12))
-    # new_triple = draw(tuples(store, state, date))
-    # return new_triple
-    # @given(get_store_state_date_tuple())
+    dates = datetimes(min_value=datetime.datetime(2013, 1, 1),
+                      max_value=datetime.datetime(2015, 12, 12))
+    # Take the 'states' strategy and prepend 'Rossmann_DE' to what it gives you
+    google_files = states.flatmap(lambda state: just('Rossmann_DE_' + state))
 
-    """Create dataframes from the date-store-state tuple strategy"""
+    # Below we create the strategy for spelling out a google_week entry.
+    # The monstrous thing below is the monadic version of the function in
+    # comments here
+    # def create_google_weeks():
+    # today = draw(dates)
+    # idx = (today.weekday() + 1) % 7
+    # last_sun = today - datetime.timedelta(idx)
+    # next_sat = last_sun + datetime.timedelta(6)
+    # return last_sun.strftime('%Y-%m-%d') + ' - ' +\
+    #       next_sat.strftime('%Y-%m-%d')
+    google_weeks = dates.flatmap(lambda today: just((today.weekday() + 1) % 7)
+        .flatmap(lambda idx: just(today - datetime.timedelta(idx))
+        .flatmap(lambda last_sun: just(last_sun + datetime.timedelta(6))
+        .flatmap(lambda next_sat: just(last_sun.strftime('%Y-%m-%d') + ' - ' +
+            next_sat.strftime('%Y-%m-%d')))))) # NOQA
 
     store_states_df = draw(data_frames([
-        column('Store', elements=integers(min_value=0, max_value=2000),
-            unique=True),
+        column('Store', elements=stores, unique=True),
         column('State', elements=states)
         ]))
 
-    google_df = pd.DataFrame({'file': ['BE'],
-                              'week': [pd.to_datetime('2013-01-01')]})
-
     google_df = draw(data_frames([
-    # column('file', elements=sampled_from(google_file_vals)),
-    # column('week', elements=sampled_from(store)),
-        column('trend', elements=integers(min_value=0, max_value=100)]))
+        column('file', elements=google_files),
+        column('week', elements=google_weeks),
+        column('trend', elements=integers(min_value=0, max_value=100))]))
 
     stores_df = draw(data_frames([
         column('Store', elements=stores, unique=True),
@@ -154,7 +150,7 @@ def create_dataframes(draw):
     train_df = draw(data_frames([
         column('Store', elements=stores),
         column('DayOfWeek', dtype='int64'),
-        column('Date', elements=date),
+        column('Date', elements=dates),
         column('Sales', dtype='int64'),
         column('Customers', dtype='int64'),
         column('Open', elements=sampled_from([0, 1])),
@@ -165,7 +161,7 @@ def create_dataframes(draw):
 
     weather_df = draw(data_frames([
         column('file', elements=states),
-        column('date', elements=date),
+        column('date', elements=dates),
         column('Max_TemperatureC', dtype='int64'),
         column('Min_TemperatureC', dtype='int64'),
         column('Dew_PointC', dtype='int64'),
@@ -197,7 +193,10 @@ def create_dataframes(draw):
         column('WindDirDegrees', dtype='int64'),
         ]))
 
-    return google_df
+    # return ({'google': google_df, 'states': store_states_df})
+    return ({'google': google_df, 'stores': stores_df,
+             'states': store_states_df, 'train': train_df,
+             'weather': weather_df})
     # return google_df, stores_df, store_states_df, train_df, weather_df
     # return (google_df, stores_df, store_states_df, train_df, weather_df)
 
@@ -221,56 +220,23 @@ state_names_df = pd.DataFrame({'StateName': state_names,
                               'State': state_abbreviations})
 
 
-# @given(fake_dfs2())
 @given(create_dataframes())
 @settings(suppress_health_check=[HealthCheck.too_slow])
-def test_merge_csvs_properties(google_df):
-# def test_merge_csvs_properties(
-# google_df, stores_df, store_states_df, train_df, weather_df):
-# def test_merge_csvs_properties(a, b, c, d, e):
+def test_merge_csvs_properties(dfs):
     #    assume(all([len(google_df) > 0, len(stores_df) > 0,
     #                len(store_states_df) > 0, len(train_df) > 0,
     #                len(weather_df) > 0]))
-    assert google_df['file'].dtype == object
-    assert google_df['week'].dtype == '<M8[ns]'
-    google_df['week'] = google_df['week'].dt.strftime('%Y-%m-%d')
-    assert google_df['week'].dtype == object
-
-
-class Project(object):
-    def __init__(self, name, start, end):
-        self.name = name
-        self.start = start
-        self.end = end
-
-    def __repr__(self):
-        return "Project '%s from %s to %s" % (
-            self.name, self.start.isoformat(), self.end.isoformat()
-        )
-
-
-project_date = datetimes(min_value=datetime.datetime(2000, 1, 1),
-                         max_value=datetime.datetime(2018, 12, 12))
-names = text(
-    characters(max_codepoint=1000, blacklist_categories=('Cc', 'Cs')),
-    min_size=1).map(lambda s: s.strip()).filter(lambda s: len(s) > 0)
-
-
-@composite
-def projects(draw):
-    name = draw(names)
-    date1 = draw(project_date)
-    date2 = draw(project_date)
-    assume(date1 != date2)
-    start = min(date1, date2)
-    end = max(date1, date2)
-    ooo = Project(name, start, end)
-    return ooo
-
-
-@given(projects())
-def test_projects_end_after_they_started(project):
-    assert project.start < project.end
+    google = dfs['google']
+    states = dfs['states']
+    stores = dfs['stores']
+    train = dfs['train']
+    weather = dfs['weather']
+    assert len(google) == 0 or google['file'].dtype == 'object'
+    assert len(google) == 0 or google['week'].dtype == 'object'
+    assert len(states) == 0 or states['State'].dtype == 'object'
+    assert len(stores) == 0 or stores['State'].dtype == 'object'
+    assert len(train) == 0 or train['Store'].dtype == 'int64'
+    assert len(weather) == 0 or weather['file'].dtype == 'object'
 
 
 def test_merge_csvs():
