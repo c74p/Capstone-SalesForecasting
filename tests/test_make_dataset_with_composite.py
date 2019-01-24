@@ -1,10 +1,11 @@
 import datetime
-from hypothesis import given, HealthCheck, settings
+from hypothesis import example, given, HealthCheck, settings
 from hypothesis.extra.pandas import column, data_frames
-from hypothesis.strategies import composite, datetimes, integers, just, lists
-from hypothesis.strategies import sampled_from
+from hypothesis.strategies import composite, datetimes, integers, just
+from hypothesis.strategies import sampled_from, text
 import numpy as np
 import pandas as pd
+import pytest
 from src.data import make_dataset
 from unittest import TestCase, mock
 
@@ -69,50 +70,47 @@ class test_Import_Csvs(TestCase):
                 mock_pandas.assert_called_with('bogus_dir/c.csv')
 
 
-# Config dataframe strategies for hypothesis testing
+# Configuration to create dataframe strategies for hypothesis testing
 # These may be used in the merge_csvs_* series of tests below
-
-@composite
-def fake_dfs(draw):
-    state, date = ('BE', '2013-01-01')
-    google_df = pd.DataFrame({'file': [state], 'week': [pd.to_datetime(date)]})
-    return google_df
-
-
-@composite
-def fake_dfs2(draw):
-    return pd.DataFrame({'file': ['BE'],
-                         'week': [pd.to_datetime('2013-01-01')]})
-
 
 state_abbreviations = ["BB", "BE", "BW", "BY", "HB", "HB,NI", "HE", "HH", "MV",
                        "NW", "RP", "SH", "SL", "SN", "ST", "TH"]
 
-rectangle_lists = integers(min_value=0, max_value=10).flatmap(
-    lambda n: lists(lists(integers(), min_size=n, max_size=n)))
+state_names = ["BadenWuerttemberg", "Bayern", "Berlin", "Brandenburg",
+               "Bremen", "Hamburg", "Hessen", "MecklenburgVorpommern",
+               "Niedersachsen", "NordrheinWestfalen", "RheinlandPfalz",
+               "Saarland", "Sachsen", "SachsenAnhalt", "SchleswigHolstein",
+               "Thueringen"]
+
+google_file_vals = ["Rossmann_DE", "Rossmann_DE_BE", "Rossmann_DE_BW",
+                    "Rossmann_DE_BY", "Rossmann_DE_HE", "Rossmann_DE_HH",
+                    "Rossmann_DE_NI", "Rossmann_DE_NW", "Rossmann_DE_RP",
+                    "Rossmann_DE_SH", "Rossmann_DE_SL", "Rossmann_DE_SN",
+                    "Rossmann_DE_ST", "Rossmann_DE_TH"]
 
 
 @composite
 def create_dataframes(draw):
     """Generate dataframes for property-based testing."""
 
-    # Strategies to be used in creating dataframes
+    # The next 25 or so lines are strategies to be used in creating dataframes
     stores = integers(min_value=0, max_value=2000)
     states = sampled_from(state_abbreviations)
     dates = datetimes(min_value=datetime.datetime(2013, 1, 1),
                       max_value=datetime.datetime(2015, 12, 12))
+
     # Take the 'states' strategy and prepend 'Rossmann_DE' to what it gives you
     google_files = states.flatmap(lambda state: just('Rossmann_DE_' + state))
 
     # Below we create the strategy for spelling out a google_week entry.
     # The monstrous thing below is the monadic version of the function in
-    # comments here
+    # comments here:
     # def create_google_weeks():
-    # today = draw(dates)
-    # idx = (today.weekday() + 1) % 7
-    # last_sun = today - datetime.timedelta(idx)
-    # next_sat = last_sun + datetime.timedelta(6)
-    # return last_sun.strftime('%Y-%m-%d') + ' - ' +\
+    #   today = draw(dates)
+    #   idx = (today.weekday() + 1) % 7
+    #   last_sun = today - datetime.timedelta(idx)
+    #   next_sat = last_sun + datetime.timedelta(6)
+    #   return last_sun.strftime('%Y-%m-%d') + ' - ' +\
     #       next_sat.strftime('%Y-%m-%d')
     google_weeks = dates.flatmap(lambda today: just((today.weekday() + 1) % 7)
         .flatmap(lambda idx: just(today - datetime.timedelta(idx))
@@ -120,18 +118,18 @@ def create_dataframes(draw):
         .flatmap(lambda next_sat: just(last_sun.strftime('%Y-%m-%d') + ' - ' +
             next_sat.strftime('%Y-%m-%d')))))) # NOQA
 
-    store_states_df = draw(data_frames([
-        column('Store', elements=stores, unique=True),
-        column('State', elements=states)
-        ]))
-
+    # Create dataframes from the strategies above
     google_df = draw(data_frames([
         column('file', elements=google_files),
         column('week', elements=google_weeks),
         column('trend', elements=integers(min_value=0, max_value=100))]))
 
+    # Since this file is crucial to structuring the merged pdf, it's hard-coded
+    state_names_df = pd.DataFrame({'StateName': state_names,
+                                  'State': state_abbreviations})
+
     stores_df = draw(data_frames([
-        column('Store', elements=stores, unique=True),
+        column('Store', elements=stores, dtype='int64', unique=True),
         column('StoreType', elements=sampled_from(['a', 'b', 'c', 'd'])),
         column('Assortment', elements=sampled_from(['a', 'b', 'c'])),
         column('CompetitionDistance', dtype='float64'),
@@ -140,11 +138,16 @@ def create_dataframes(draw):
         column('Promo2', elements=sampled_from([0, 1])),
         column('Promo2SinceWeek', dtype='float64'),
         column('Promo2SinceYear', dtype='float64'),
-        column('PromoInterval', elements=sampled_from(['Feb,May,Aug,Nov',
-                                                       'Jan,Apr,Jul,Oct',
-                                                       'Mar,Jun,Sept,Dec',
-                                                       np.nan
-                                                       ]))
+        column('PromoInterval',
+               elements=sampled_from(['Feb,May,Aug,Nov',
+                                      'Jan,Apr,Jul,Oct',
+                                      'Mar,Jun,Sept,Dec',
+                                      np.nan]))
+        ]))
+
+    store_states_df = draw(data_frames([
+        column('Store', elements=stores, unique=True),
+        column('State', elements=states)
         ]))
 
     train_df = draw(data_frames([
@@ -160,7 +163,7 @@ def create_dataframes(draw):
         ]))
 
     weather_df = draw(data_frames([
-        column('file', elements=states),
+        column('file', elements=sampled_from(state_names)),
         column('date', elements=dates),
         column('Max_TemperatureC', dtype='int64'),
         column('Min_TemperatureC', dtype='int64'),
@@ -193,50 +196,73 @@ def create_dataframes(draw):
         column('WindDirDegrees', dtype='int64'),
         ]))
 
-    # return ({'google': google_df, 'states': store_states_df})
-    return ({'google': google_df, 'stores': stores_df,
-             'states': store_states_df, 'train': train_df,
-             'weather': weather_df})
-    # return google_df, stores_df, store_states_df, train_df, weather_df
-    # return (google_df, stores_df, store_states_df, train_df, weather_df)
+    return {'googletrend.csv': google_df, 'state_names.csv': state_names_df,
+            'store_states.csv': store_states_df, 'store.csv': stores_df,
+            'train.csv': train_df, 'weather.csv': weather_df}
 
 
-# Configuration and strategy for googletrend.csv file
-google_file_vals = ["Rossmann_DE", "Rossmann_DE_BE", "Rossmann_DE_BW",
-                    "Rossmann_DE_BY", "Rossmann_DE_HE", "Rossmann_DE_HH",
-                    "Rossmann_DE_NI", "Rossmann_DE_NW", "Rossmann_DE_RP",
-                    "Rossmann_DE_SH", "Rossmann_DE_SL", "Rossmann_DE_SN",
-                    "Rossmann_DE_ST", "Rossmann_DE_TH"]
-
-# Configuration for state_names.csv file
-# Since this file is crucial to structuring the merged pdf, it's hard-coded
-state_names = ["BadenWuerttemberg", "Bayern", "Berlin", "Brandenburg",
-               "Bremen", "Hamburg", "Hessen", "MecklenburgVorpommern",
-               "Niedersachsen", "NordrheinWestfalen", "RheinlandPfalz",
-               "Saarland", "Sachsen", "SachsenAnhalt", "SchleswigHolstein",
-               "Thueringen"]
-
-state_names_df = pd.DataFrame({'StateName': state_names,
-                              'State': state_abbreviations})
+@given(text())
+@example('Precipitation_Mm')
+def test_convert_to_snake_case(t):
+    new = make_dataset.convert_to_snake_case(t)
+    assert new.lower() == new
+    assert new.replace('__', 'XX') == new
 
 
+@pytest.mark.props
 @given(create_dataframes())
 @settings(suppress_health_check=[HealthCheck.too_slow])
 def test_merge_csvs_properties(dfs):
-    #    assume(all([len(google_df) > 0, len(stores_df) > 0,
-    #                len(store_states_df) > 0, len(train_df) > 0,
-    #                len(weather_df) > 0]))
-    google = dfs['google']
-    states = dfs['states']
-    stores = dfs['stores']
-    train = dfs['train']
-    weather = dfs['weather']
-    assert len(google) == 0 or google['file'].dtype == 'object'
-    assert len(google) == 0 or google['week'].dtype == 'object'
-    assert len(states) == 0 or states['State'].dtype == 'object'
-    assert len(stores) == 0 or stores['State'].dtype == 'object'
-    assert len(train) == 0 or train['Store'].dtype == 'int64'
-    assert len(weather) == 0 or weather['file'].dtype == 'object'
+    # google = dfs['googletrend']
+    # state_names = dfs['state_names']
+    # states = dfs['store_states']
+    # stores = dfs['store']
+    # train = dfs['train']
+    # weather = dfs['weather']
+    # assert len(google) == 0 or google['file'].dtype == 'object'
+    # assert len(google) == 0 or google['week'].dtype == 'object'
+    # assert len(state_names) == 0 or state_names['State'].dtype == 'object'
+    # assert len(states) == 0 or states['State'].dtype == 'object'
+    # assert len(stores) == 0 or stores['Store'].dtype == 'int64'
+    # assert len(train) == 0 or train['Store'].dtype == 'int64'
+    # assert len(weather) == 0 or weather['file'].dtype == 'object'
+
+    new_df = make_dataset.merge_csvs(dfs)
+
+    # Check on csv and dataframe naming formatting
+    assert '.csv' not in ''.join(list(new_df.keys()))
+    assert 'googletrend' not in list(new_df.keys())
+    # Check on column naming formatting
+    assert 'min_visibilityk_m' not in new_df['weather'].columns
+    assert 'min_visibility_km' in new_df['weather'].columns
+    assert ''.join(list(new_df.keys())).lower() == ''.join(list(new_df.keys()))
+    # Check on nan-filling
+
+    # EDIT ADD ONE HERE FOR THE WHOLE DATAFRAME WHEN IT'S DONE
+    for df in new_df.values():
+        for col in df:  # col = column, name-shadowing made me choose 'col'
+            assert len(new_df[df]) == 0 # or\
+                # (new_df[df][col].isnull()).all() or\
+                # new_df[df][col].isnull().sum() == 0
+
+    assert len(new_df['store']) == 0 or\
+        (new_df['store'].promo2_since_week.isnull()).all() or\
+        new_df['store'].promo2_since_week.isnull().sum() == 0
+    assert len(new_df['store']) == 0 or\
+        (new_df['store'].promo2_since_year.isnull()).all() or\
+        new_df['store'].promo2_since_year.isnull().sum() == 0
+    assert len(new_df['store']) == 0 or\
+        (new_df['store'].promo_interval.isnull()).all() or\
+        new_df['store'].promo_interval.isnull().sum() == 0
+    assert len(new_df['store']) == 0 or\
+        (new_df['store'].competition_distance.isnull()).all() or\
+        new_df['store'].competition_distance.isnull().sum() == 0
+    assert len(new_df['store']) == 0 or\
+        (new_df['store'].competition_open_since_month.isnull()).all() or\
+        new_df['store'].competition_open_since_month.isnull().sum() == 0
+    assert len(new_df['store']) == 0 or\
+        (new_df['store'].competition_open_since_year.isnull()).all() or\
+        new_df['store'].competition_open_since_year.isnull().sum() == 0
 
 
 def test_merge_csvs():

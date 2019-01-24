@@ -1,5 +1,6 @@
 import os
 import pandas as pd
+import re
 from typing import Any, Dict, List
 
 
@@ -40,3 +41,67 @@ def import_csvs(
             dataframes[file_name] = df
 
     return dataframes
+
+
+def convert_to_snake_case(string: str) -> str:
+    """Helper function to convert column names into snake case. Takes a string
+    of any sort and makes conversions to snake case, replacing double-
+    underscores with single underscores."""
+
+    s1 = re.sub('(.)([A-Z][a-z]+)', r'\1_\2', string)
+    draft = re.sub('([a-z0-9])([A-Z])', r'\1_\2', s1).lower()
+    return draft.replace('__', '_')
+
+
+def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+    """Merge the csvs from import_csvs into a single pd.DataFrame.
+
+    - dfs: a dictionary of dataframes keyed by name. The reference
+    implementation has dataframes generated from the following files in
+    /data/raw/: 'googletrend.csv', 'state_names.csv', 'store.csv',
+    'store_states.csv', 'train.csv', 'weather.csv'
+    """
+
+    # Strip '.csv' from key name if present
+    keys = list(dfs.keys())
+    for key in keys:
+        if key.endswith('.csv'):
+            dfs[key[:-4]] = dfs.pop(key)
+
+    # rename googletrend if needed
+    if 'googletrend' in dfs.keys():
+        dfs['google'] = dfs.pop('googletrend')
+
+    # Fix spelling error in weather dataframe
+    if 'Min_VisibilitykM' in dfs['weather'].columns:
+        dfs['weather'].rename(columns={'Min_VisibilitykM': 'Min_VisibilityKm'},
+                              inplace=True)
+
+    for df in dfs.values():
+        col_list = list(df.columns)
+        df.columns = pd.Index(map(convert_to_snake_case, col_list))
+        for column in df.columns:
+            if df[column].dtype == 'float64':
+                df[column] = df[column].fillna(df[column].mean(), inplace=True)
+            if df[column].dtype == 'object':
+                df[column] = df[column].fillna('None', inplace=True)
+
+    # dfs['store']['promo2_since_week'] =\
+    #     dfs['store'].promo2_since_week.fillna(dfs['store']
+    #                                           .promo2_since_week.mean(),
+    #                                           inplace=True)
+    # dfs['store']['promo2_since_year'] =\
+    #     dfs['store'].promo2_since_year.fillna(dfs['store']
+    #                                           .promo2_since_year.mean(),
+    #                                           inplace=True)
+    # dfs['store']['promo_interval'] =\
+    #     dfs['store'].promo_interval.fillna('None', inplace=True)
+    # dfs['store']['competition_distance'] =\
+    #     dfs['store'].competition_distance.fillna(dfs['store']
+    #                                              .competition_distance.mean(),
+    #                                              inplace=True)
+
+    new_df = {}
+    for k, v in dfs.items():
+        new_df[k] = v
+    return new_df
