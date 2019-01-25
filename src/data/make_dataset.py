@@ -67,21 +67,33 @@ def replace_nans(column: pd.Series) -> None:
     is the target variable. NaN valuse for 'store', 'sales', 'date' and 'week'
     will be thrown out when the dataframes are merged.
 
-    Note that this function changes the values in place; no value is returned.
+    This function changes the values in place; no value is returned.
     """
     # Fill NaNs for columns of floats with the mean as above
-    if column.dtype == 'float64':
-        column = column.fillna(column.mean(), inplace=True)
+    if column.dtype == 'float64' and column.name not in ['store', 'sales'] and\
+            len(column) > 0:
+        # if column.isnull().any():
+        #    print('float')
+        #    print(column.name)
+        #    print(column.isnull().sum())
+        # column = column.fillna(column.mean(), inplace=True)
+        # column = column.fillna(column.mean())
+        column.fillna(column.mean(), inplace=True)
 
     # Fill NaNs for columns of objects with 'None' (except 'date'/'week') as
     # above
-    if column.dtype == 'object' and column not in ['date', 'week']:
-        column = column.fillna('None', inplace=True)
+    if column.dtype == 'object' and column.name not in ['date', 'week']:
+        # column = column.fillna('None', inplace=True)
+        # column = column.fillna('None')
+        column.fillna('None', inplace=True)
 
     # Fill NaNs for columns of ints with mean coerced to int (except 'store'/
     # 'sales') as above
-    if column.dtype == 'int64' and column not in ['store', 'sales']:
-        column = column.fillna(int(column.mean()), inplace=True)
+    if column.dtype == 'int64' and column.name not in ['store', 'sales'] and\
+            len(column) > 0:
+                # column = column.fillna(int(column.mean()), inplace=True)
+                # column = column.fillna(int(column.mean()))
+                column.fillna(int(column.mean()), inplace=True)
 
 
 def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
@@ -104,7 +116,7 @@ def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         dfs['google'] = dfs.pop('googletrend')
 
     # Fix spelling error in weather dataframe
-    if 'Min_VisibilitykM' in dfs['weather'].columns:
+    if 'weather' in dfs.keys() and 'Min_VisibilitykM' in dfs['weather'].columns:
         dfs['weather'].rename(columns={'Min_VisibilitykM': 'Min_VisibilityKm'},
                               inplace=True)
 
@@ -112,7 +124,13 @@ def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         col_list = list(df.columns)
         df.columns = pd.Index(map(convert_to_snake_case, col_list))
         for column in df.columns:
-            replace_nans(df.columns)
+            replace_nans(df[column])
+
+    for key, df in dfs.items():
+        for col in df.columns:
+            if len(df > 0) and df[col].isnull().any():
+                print(key, col, df[col].dtype)
+                print(df[df[col].isnull()])
 
     # dfs['store']['promo2_since_week'] =\
     #     dfs['store'].promo2_since_week.fillna(dfs['store']

@@ -1,8 +1,8 @@
 import datetime
 from hypothesis import assume, example, given, HealthCheck, settings
 from hypothesis.extra.pandas import column, data_frames
-from hypothesis.strategies import composite, datetimes, integers, just
-from hypothesis.strategies import sampled_from, text
+from hypothesis.strategies import composite, datetimes, floats, integers, just
+from hypothesis.strategies import one_of, sampled_from, SearchStrategy, text
 import numpy as np
 import pandas as pd
 import pytest
@@ -93,14 +93,30 @@ google_file_vals = ["Rossmann_DE", "Rossmann_DE_BE", "Rossmann_DE_BW",
 def create_dataframes(draw):
     """Generate dataframes for property-based testing."""
 
+    # define a 'plus_nan' strategy wrapper to explicitly include np.NaN
+    @composite
+    def plus_nan(draw, strat: SearchStrategy) -> SearchStrategy:
+        return one_of(just(np.NaN), strat)
+        # item = draw(one_of(just(np.NaN), strat))
+        # return strat.flatmap(lambda strat: one_of(just(np.NaN), just(strat)))
+
     # The next 25 or so lines are strategies to be used in creating dataframes
     stores = integers(min_value=0, max_value=2000)
+    stores_plus_nan = plus_nan(stores)
+
     states = sampled_from(state_abbreviations)
+    states_plus_nan = plus_nan(states)
+
     dates = datetimes(min_value=datetime.datetime(2013, 1, 1),
                       max_value=datetime.datetime(2015, 12, 12))
+    dates_plus_nan = plus_nan(dates)
+
+    integers_plus_nan = plus_nan(integers)
 
     # Take the 'states' strategy and prepend 'Rossmann_DE' to what it gives you
+    # Then add in NaN as a possibility for good measure
     google_files = states.flatmap(lambda state: just('Rossmann_DE_' + state))
+    google_files_plus_nan = plus_nan(google_files)
 
     # Below we create the strategy for spelling out a google_week entry.
     # The monstrous thing below is the monadic version of the function in
@@ -112,80 +128,85 @@ def create_dataframes(draw):
     #   next_sat = last_sun + datetime.timedelta(6)
     #   return last_sun.strftime('%Y-%m-%d') + ' - ' +\
     #       next_sat.strftime('%Y-%m-%d')
+    # Then add in NaN as a possibility for good measure
     google_weeks = dates.flatmap(lambda today: just((today.weekday() + 1) % 7)
         .flatmap(lambda idx: just(today - datetime.timedelta(idx))
         .flatmap(lambda last_sun: just(last_sun + datetime.timedelta(6))
         .flatmap(lambda next_sat: just(last_sun.strftime('%Y-%m-%d') + ' - ' +
             next_sat.strftime('%Y-%m-%d')))))) # NOQA
+    google_weeks_plus_nan = plus_nan(google_weeks)
 
     # Create dataframes from the strategies above
     google_df = draw(data_frames([
-        column('file', elements=google_files),
-        column('week', elements=google_weeks),
-        column('trend', elements=integers(min_value=0, max_value=100))]))
+        column('file', elements=google_files_plus_nan),
+        column('week', elements=google_weeks_plus_nan),
+        column('trend',
+               elements=plus_nan(integers(min_value=0, max_value=100)))]))
 
     # Since this file is crucial to structuring the merged pdf, it's hard-coded
     state_names_df = pd.DataFrame({'StateName': state_names,
                                   'State': state_abbreviations})
 
     stores_df = draw(data_frames([
-        column('Store', elements=stores, dtype='int64', unique=True),
-        column('StoreType', elements=sampled_from(['a', 'b', 'c', 'd'])),
-        column('Assortment', elements=sampled_from(['a', 'b', 'c'])),
-        column('CompetitionDistance', dtype='float64'),
-        column('CompetitionOpenSinceMonth', dtype='float64'),
-        column('CompetitionOpenSinceYear', dtype='float64'),
-        column('Promo2', elements=sampled_from([0, 1])),
-        column('Promo2SinceWeek', dtype='float64'),
-        column('Promo2SinceYear', dtype='float64'),
+        column('Store', elements=stores_plus_nan, unique=True),
+        column('StoreType',
+               elements=sampled_from(['a', 'b', 'c', 'd', np.NaN])),
+        column('Assortment', elements=sampled_from(['a', 'b', 'c', np.NaN])),
+        column('CompetitionDistance', elements=floats(allow_infinity=False)),
+        column('CompetitionOpenSinceMonth',
+               elements=floats(allow_infinity=False)),
+        column('CompetitionOpenSinceYear',
+               elements=floats(allow_infinity=False)),
+        column('Promo2', elements=sampled_from([0, 1, np.NaN])),
+        column('Promo2SinceWeek', elements=floats(allow_infinity=False)),
+        column('Promo2SinceYear', elements=floats(allow_infinity=False)),
         column('PromoInterval',
-               elements=sampled_from(['Feb,May,Aug,Nov',
-                                      'Jan,Apr,Jul,Oct',
-                                      'Mar,Jun,Sept,Dec',
-                                      np.nan]))
+               elements=sampled_from(['Feb,May,Aug,Nov', 'Jan,Apr,Jul,Oct',
+                                      'Mar,Jun,Sept,Dec', np.NaN]))
         ]))
 
     store_states_df = draw(data_frames([
-        column('Store', elements=stores, unique=True),
-        column('State', elements=states)
+        column('Store', elements=stores_plus_nan, unique=True),
+        column('State', elements=states_plus_nan)
         ]))
 
     train_df = draw(data_frames([
-        column('Store', elements=stores),
-        column('DayOfWeek', dtype='int64'),
-        column('Date', elements=dates),
-        column('Sales', dtype='int64'),
-        column('Customers', dtype='int64'),
-        column('Open', elements=sampled_from([0, 1])),
-        column('Promo', elements=sampled_from([0, 1])),
-        column('StateHoliday', elements=sampled_from(['0', 'a', 'b', 'c'])),
-        column('SchoolHoliday', elements=sampled_from([0, 1]))
+        column('Store', elements=stores_plus_nan),
+        column('DayOfWeek', elements=integers_plus_nan),
+        column('Date', elements=dates_plus_nan),
+        column('Sales', elements=integers_plus_nan),
+        column('Customers', elements=integers_plus_nan),
+        column('Open', elements=sampled_from([0, 1, np.NaN])),
+        column('Promo', elements=sampled_from([0, 1, np.NaN])),
+        column('StateHoliday',
+               elements=sampled_from(['0', 'a', 'b', 'c', np.NaN])),
+        column('SchoolHoliday', elements=sampled_from([0, 1, np.NaN]))
         ]))
 
     weather_df = draw(data_frames([
-        column('file', elements=sampled_from(state_names)),
-        column('date', elements=dates),
-        column('Max_TemperatureC', dtype='int64'),
-        column('Min_TemperatureC', dtype='int64'),
-        column('Dew_PointC', dtype='int64'),
-        column('MeanDew_PointC', dtype='int64'),
-        column('MinDew_PointC', dtype='int64'),
-        column('Max_Humidity', dtype='int64'),
-        column('Mean_Humidity', dtype='int64'),
-        column('Min_Humidity', dtype='int64'),
-        column('Max_Sea_Level_PressurehPa', dtype='int64'),
-        column('Mean_Sea_Level_PressurehPa', dtype='int64'),
-        column('Min_Sea_Level_PressurehPa', dtype='int64'),
-        column('Max_VisibilityKm', dtype='float64'),
-        column('Mean_VisibilityKm', dtype='float64'),
-        column('Min_VisibilitykM', dtype='float64'),
-        column('Max_Wind_SpeedKm_h', dtype='int64'),
-        column('Mean_Wind_SpeedKm_h', dtype='int64'),
-        column('Max_Gust_SpeedKm_h', dtype='float64'),
-        column('Precipitationmm', dtype='float64'),
+        column('file', elements=plus_nan(sampled_from(state_names))),
+        column('date', elements=dates_plus_nan),
+        column('Max_TemperatureC', elements=integers_plus_nan),
+        column('Min_TemperatureC', elements=integers_plus_nan),
+        column('Dew_PointC', elements=integers_plus_nan),
+        column('MeanDew_PointC', elements=integers_plus_nan),
+        column('MinDew_PointC', elements=integers_plus_nan),
+        column('Max_Humidity', elements=integers_plus_nan),
+        column('Mean_Humidity', elements=integers_plus_nan),
+        column('Min_Humidity', elements=integers_plus_nan),
+        column('Max_Sea_Level_PressurehPa', elements=integers_plus_nan),
+        column('Mean_Sea_Level_PressurehPa', elements=integers_plus_nan),
+        column('Min_Sea_Level_PressurehPa', elements=integers_plus_nan),
+        column('Max_VisibilityKm', elements=floats(allow_infinity=False)),
+        column('Mean_VisibilityKm', elements=floats(allow_infinity=False)),
+        column('Min_VisibilitykM', elements=floats(allow_infinity=False)),
+        column('Max_Wind_SpeedKm_h', elements=integers_plus_nan),
+        column('Mean_Wind_SpeedKm_h', elements=integers_plus_nan),
+        column('Max_Gust_SpeedKm_h', elements=floats(allow_infinity=False)),
+        column('Precipitationmm', elements=floats(allow_infinity=False)),
         column('CloudCover', elements=sampled_from(['NA'] +
                [str(i) for i in range(0, 9)])),
-        column('Events', elements=sampled_from([np.nan] +
+        column('Events', elements=sampled_from([np.NaN] +
                ['Rain', 'Fog-Rain-Snow', 'Snow', 'Rain-Snow', 'Fog-Snow',
                 'Rain-Thunderstorm', 'Rain-Snow-Hail', 'Fog-Rain', 'Fog',
                 'Fog-Snow-Hail', 'Thunderstorm', 'Fog-Rain-Thunderstorm',
@@ -193,7 +214,7 @@ def create_dataframes(draw):
                 'Rain-Hail-Thunderstorm', 'Fog-Rain-Snow-Hail',
                 'Fog-Thunderstorm', 'Rain-Snow-Thunderstorm',
                 'Fog-Rain-Hail-Thunderstorm', 'Snow-Hail'])),
-        column('WindDirDegrees', dtype='int64'),
+        column('WindDirDegrees', elements=integers_plus_nan),
         ]))
 
     return {'googletrend.csv': google_df, 'state_names.csv': state_names_df,
@@ -242,10 +263,15 @@ def test_merge_csvs_properties(dfs):
 
     # EDIT UPDATE THIS FOR THE WHOLE DATAFRAME WHEN IT'S DONE
     for key, df in new_df.items():
-        for col in df.columns:  # col = column, name-shadowing made me choose 'col'
-            assert len(new_df[key]) == 0 or\
-                (new_df[key][col].isnull()).all() or\
-                new_df[key][col].isnull().sum() == 0
+        for col in df.columns:
+            if col not in ['store', 'sales', 'date', 'week']:
+                # Check that NaNs are removed appropriately
+                # For 'store', 'sales', 'date', 'week': NaNs fundamentally
+                # change the meaning of the data, so those remain NaNs and will
+                # be removed in the merge later
+                assert len(new_df[key]) == 0 or\
+                    (new_df[key][col].isnull()).all() or\
+                    new_df[key][col].isnull().sum() == 0
 
     assert len(new_df['store']) == 0 or\
         (new_df['store'].promo2_since_week.isnull()).all() or\
