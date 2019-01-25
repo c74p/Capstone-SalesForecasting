@@ -96,7 +96,8 @@ def create_dataframes(draw):
     # define a 'plus_nan' strategy wrapper to explicitly include np.NaN
     @composite
     def plus_nan(draw, strat: SearchStrategy) -> SearchStrategy:
-        return one_of(just(np.NaN), strat)
+        v = draw(one_of(just(np.NaN), strat))
+        return v
 
     # create strategies to be used in creating dataframes
     stores = integers(min_value=0, max_value=2000)
@@ -148,7 +149,7 @@ def create_dataframes(draw):
                                   'State': state_abbreviations})
 
     stores_df = draw(data_frames([
-        column('Store', elements=stores, unique=True),
+        column('Store', elements=stores_plus_nan, unique=True),
         column('StoreType',
                elements=sampled_from(['a', 'b', 'c', 'd', np.NaN])),
         column('Assortment', elements=sampled_from(['a', 'b', 'c', np.NaN])),
