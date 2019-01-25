@@ -11,9 +11,9 @@ from unittest import TestCase, mock
 
 # This is the test file for the src/data/make_dataset.py file.
 # Note that it uses the object-oriented unittest style for some parts, and
-# the stripped-down function approach (after definition of appropriate
-# strategies) for property-based testing in Hypothesis. It may be a little
-# jarring, but I found the function approach easier to use in Hypothesis.
+# the function approach (after definition of appropriate strategies) for
+# property-based testing in Hypothesis.  I found the function approach easier
+# to use in Hypothesis.
 
 
 class test_Import_Csvs(TestCase):
@@ -82,25 +82,18 @@ state_names = ["BadenWuerttemberg", "Bayern", "Berlin", "Brandenburg",
                "Saarland", "Sachsen", "SachsenAnhalt", "SchleswigHolstein",
                "Thueringen"]
 
-google_file_vals = ["Rossmann_DE", "Rossmann_DE_BE", "Rossmann_DE_BW",
-                    "Rossmann_DE_BY", "Rossmann_DE_HE", "Rossmann_DE_HH",
-                    "Rossmann_DE_NI", "Rossmann_DE_NW", "Rossmann_DE_RP",
-                    "Rossmann_DE_SH", "Rossmann_DE_SL", "Rossmann_DE_SN",
-                    "Rossmann_DE_ST", "Rossmann_DE_TH"]
-
-
-# define a 'plus_nan' strategy wrapper to explicitly include np.NaN
-@composite
-def plus_nan(draw, strat: SearchStrategy) -> SearchStrategy:
-    v = draw(one_of(just(np.NaN), strat))
-    return v
-
 
 @composite
 def create_dataframes(draw):
     """Generate dataframes for property-based testing."""
 
     # create strategies to be used in creating dataframes
+
+    # define a 'plus_nan' strategy wrapper to explicitly include np.NaN
+    @composite
+    def plus_nan(draw, strat: SearchStrategy) -> SearchStrategy:
+        return draw(one_of(just(np.NaN), strat))
+
     stores = integers(min_value=0, max_value=2000)
     stores_plus_nan = plus_nan(stores)
 
@@ -112,16 +105,13 @@ def create_dataframes(draw):
     dates_plus_nan = plus_nan(dates)
 
     integers_plus_nan = plus_nan(integers())
-    # integers_plus_nan = plus_nan(integers)
 
     # Take the 'states' strategy and prepend 'Rossmann_DE' to what it gives you
     # Then add in NaN as a possibility for good measure
     google_files = states.flatmap(lambda state: just('Rossmann_DE_' + state))
     google_files_plus_nan = plus_nan(google_files)
 
-    # Below we create the strategy for spelling out a google_week entry.
-    # The monstrous thing below is the monadic version of the function in
-    # comments here:
+    # create the strategy for spelling out a google_week entry (and add nan)
     @composite
     def create_google_weeks(draw, strat: SearchStrategy) -> SearchStrategy:
         today = draw(dates)
@@ -130,22 +120,20 @@ def create_dataframes(draw):
         next_sat = last_sun + datetime.timedelta(6)
         return last_sun.strftime('%Y-%m-%d') + ' - ' +\
             next_sat.strftime('%Y-%m-%d')
-    # Then add in NaN as a possibility for good measure
-    # google_weeks = dates.flatmap(lambda today: just((today.weekday() + 1) %7)
-    # #     .flatmap(lambda idx: just(today - datetime.timedelta(idx))
-    #     .flatmap(lambda last_sun: just(last_sun + datetime.timedelta(6))
-    #     .flatmap(lambda next_sat: just(last_sun.strftime('%Y-%m-%d') + ' - '+
-    #         next_sat.strftime('%Y-%m-%d')))))) # NOQA
-    google_weeks = create_google_weeks(dates)
     google_weeks_plus_nan = plus_nan(create_google_weeks(dates))
 
     # Create dataframes from the strategies above
+    # Note that each column has one of three strategies that include possible
+    # nan values:
+    # 1) It explicitly includes the 'plus_nan' wrapper
+    # 2) It's sampled_from a list that explicitly includes nan
+    # 3) It uses the 'floats' strategy, with allow_nan=True.  (The 'floats'
+    #    strategy implicitly allows nans but PEP 20 dude)
     google_df = draw(data_frames([
         column('file', elements=google_files_plus_nan),
         column('week', elements=google_weeks_plus_nan),
         column('trend',
-               # elements=integers(min_value=0, max_value=100))]))
-               elements=integers_plus_nan)]))
+               elements=plus_nan(integers(min_value=0, max_value=100)))]))
 
     # Since this file is crucial to structuring the merged pdf, it's hard-coded
     state_names_df = pd.DataFrame({'StateName': state_names,
@@ -156,14 +144,17 @@ def create_dataframes(draw):
         column('StoreType',
                elements=sampled_from(['a', 'b', 'c', 'd', np.NaN])),
         column('Assortment', elements=sampled_from(['a', 'b', 'c', np.NaN])),
-        column('CompetitionDistance', elements=floats(allow_infinity=False)),
+        column('CompetitionDistance',
+               elements=floats(allow_infinity=False, allow_nan=True)),
         column('CompetitionOpenSinceMonth',
-               elements=floats(allow_infinity=False)),
+               elements=floats(allow_infinity=False, allow_nan=True)),
         column('CompetitionOpenSinceYear',
-               elements=floats(allow_infinity=False)),
+               elements=floats(allow_infinity=False, allow_nan=True)),
         column('Promo2', elements=sampled_from([0, 1, np.NaN])),
-        column('Promo2SinceWeek', elements=floats(allow_infinity=False)),
-        column('Promo2SinceYear', elements=floats(allow_infinity=False)),
+        column('Promo2SinceWeek',
+               elements=floats(allow_infinity=False, allow_nan=True)),
+        column('Promo2SinceYear',
+               elements=floats(allow_infinity=False, allow_nan=True)),
         column('PromoInterval',
                elements=sampled_from(['Feb,May,Aug,Nov', 'Jan,Apr,Jul,Oct',
                                       'Mar,Jun,Sept,Dec', np.NaN]))
@@ -187,6 +178,9 @@ def create_dataframes(draw):
         column('SchoolHoliday', elements=sampled_from([0, 1, np.NaN]))
         ]))
 
+    # Note that there are a lot of integer-valued columns in here; that's what
+    # came out of the original dataframe. May need to revisit whether it's
+    # better to code these as floats from the beginning.
     weather_df = draw(data_frames([
         column('file', elements=sampled_from([np.NaN] + state_names)),
         column('date', elements=dates_plus_nan),
@@ -201,13 +195,18 @@ def create_dataframes(draw):
         column('Max_Sea_Level_PressurehPa', elements=integers_plus_nan),
         column('Mean_Sea_Level_PressurehPa', elements=integers_plus_nan),
         column('Min_Sea_Level_PressurehPa', elements=integers_plus_nan),
-        column('Max_VisibilityKm', elements=floats(allow_infinity=False)),
-        column('Mean_VisibilityKm', elements=floats(allow_infinity=False)),
-        column('Min_VisibilitykM', elements=floats(allow_infinity=False)),
+        column('Max_VisibilityKm',
+               elements=floats(allow_infinity=False, allow_nan=True)),
+        column('Mean_VisibilityKm',
+               elements=floats(allow_infinity=False, allow_nan=True)),
+        column('Min_VisibilitykM',
+               elements=floats(allow_infinity=False, allow_nan=True)),
         column('Max_Wind_SpeedKm_h', elements=integers_plus_nan),
         column('Mean_Wind_SpeedKm_h', elements=integers_plus_nan),
-        column('Max_Gust_SpeedKm_h', elements=floats(allow_infinity=False)),
-        column('Precipitationmm', elements=floats(allow_infinity=False)),
+        column('Max_Gust_SpeedKm_h',
+               elements=floats(allow_infinity=False, allow_nan=True)),
+        column('Precipitationmm',
+               elements=floats(allow_infinity=False, allow_nan=True)),
         column('CloudCover', elements=sampled_from(['NA', np.NaN] +
                [str(i) for i in range(0, 9)])),
         column('Events', elements=sampled_from([np.NaN] +
@@ -238,19 +237,6 @@ def test_convert_to_snake_case(t):
 @given(create_dataframes())
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_merge_csvs_properties(dfs):
-    # google = dfs['googletrend']
-    # state_names = dfs['state_names']
-    # states = dfs['store_states']
-    # stores = dfs['store']
-    # train = dfs['train']
-    # weather = dfs['weather']
-    # assert len(google) == 0 or google['file'].dtype == 'object'
-    # assert len(google) == 0 or google['week'].dtype == 'object'
-    # assert len(state_names) == 0 or state_names['State'].dtype == 'object'
-    # assert len(states) == 0 or states['State'].dtype == 'object'
-    # assert len(stores) == 0 or stores['Store'].dtype == 'int64'
-    # assert len(train) == 0 or train['Store'].dtype == 'int64'
-    # assert len(weather) == 0 or weather['file'].dtype == 'object'
 
     df_dict = make_dataset.merge_csvs(dfs)
 
@@ -262,8 +248,6 @@ def test_merge_csvs_properties(dfs):
     assert 'min_visibility_km' in df_dict['weather'].columns
     assert ''.join(list(df_dict.keys())).lower() ==\
            ''.join(list(df_dict.keys()))
-    # Check on nan-filling
-
     # EDIT UPDATE THIS FOR THE WHOLE DATAFRAME WHEN IT'S DONE
     # Check that NaNs are removed appropriately.
     # For 'store', 'sales', 'date', 'week': NaNs fundamentally
@@ -275,25 +259,6 @@ def test_merge_csvs_properties(dfs):
                 if col not in ['store', 'sales', 'date', 'week']:
                     assert df[col].isnull().sum() == 0 or\
                         (df[col].isnull()).all()
-
-    assert len(df_dict['store']) == 0 or\
-        (df_dict['store'].promo2_since_week.isnull()).all() or\
-        df_dict['store'].promo2_since_week.isnull().sum() == 0
-    assert len(df_dict['store']) == 0 or\
-        (df_dict['store'].promo2_since_year.isnull()).all() or\
-        df_dict['store'].promo2_since_year.isnull().sum() == 0
-    assert len(df_dict['store']) == 0 or\
-        (df_dict['store'].promo_interval.isnull()).all() or\
-        df_dict['store'].promo_interval.isnull().sum() == 0
-    assert len(df_dict['store']) == 0 or\
-        (df_dict['store'].competition_distance.isnull()).all() or\
-        df_dict['store'].competition_distance.isnull().sum() == 0
-    assert len(df_dict['store']) == 0 or\
-        (df_dict['store'].competition_open_since_month.isnull()).all() or\
-        df_dict['store'].competition_open_since_month.isnull().sum() == 0
-    assert len(df_dict['store']) == 0 or\
-        (df_dict['store'].competition_open_since_year.isnull()).all() or\
-        df_dict['store'].competition_open_since_year.isnull().sum() == 0
 
 
 def test_merge_csvs():
