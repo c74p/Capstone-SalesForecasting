@@ -1,5 +1,5 @@
 import datetime
-from hypothesis import assume, example, given, HealthCheck, settings
+from hypothesis import example, given, HealthCheck, settings
 from hypothesis.extra.pandas import column, data_frames
 from hypothesis.strategies import composite, datetimes, floats, integers, just
 from hypothesis.strategies import one_of, sampled_from, SearchStrategy, text
@@ -97,10 +97,8 @@ def create_dataframes(draw):
     @composite
     def plus_nan(draw, strat: SearchStrategy) -> SearchStrategy:
         return one_of(just(np.NaN), strat)
-        # item = draw(one_of(just(np.NaN), strat))
-        # return strat.flatmap(lambda strat: one_of(just(np.NaN), just(strat)))
 
-    # The next 25 or so lines are strategies to be used in creating dataframes
+    # create strategies to be used in creating dataframes
     stores = integers(min_value=0, max_value=2000)
     stores_plus_nan = plus_nan(stores)
 
@@ -121,34 +119,36 @@ def create_dataframes(draw):
     # Below we create the strategy for spelling out a google_week entry.
     # The monstrous thing below is the monadic version of the function in
     # comments here:
-    # def create_google_weeks():
-    #   today = draw(dates)
-    #   idx = (today.weekday() + 1) % 7
-    #   last_sun = today - datetime.timedelta(idx)
-    #   next_sat = last_sun + datetime.timedelta(6)
-    #   return last_sun.strftime('%Y-%m-%d') + ' - ' +\
-    #       next_sat.strftime('%Y-%m-%d')
+    @composite
+    def create_google_weeks(draw, strat: SearchStrategy) -> SearchStrategy:
+        today = draw(dates)
+        idx = (today.weekday() + 1) % 7
+        last_sun = today - datetime.timedelta(idx)
+        next_sat = last_sun + datetime.timedelta(6)
+        return last_sun.strftime('%Y-%m-%d') + ' - ' +\
+            next_sat.strftime('%Y-%m-%d')
     # Then add in NaN as a possibility for good measure
-    google_weeks = dates.flatmap(lambda today: just((today.weekday() + 1) % 7)
-        .flatmap(lambda idx: just(today - datetime.timedelta(idx))
-        .flatmap(lambda last_sun: just(last_sun + datetime.timedelta(6))
-        .flatmap(lambda next_sat: just(last_sun.strftime('%Y-%m-%d') + ' - ' +
-            next_sat.strftime('%Y-%m-%d')))))) # NOQA
-    google_weeks_plus_nan = plus_nan(google_weeks)
+    # google_weeks = dates.flatmap(lambda today: just((today.weekday() + 1) %7)
+    # #     .flatmap(lambda idx: just(today - datetime.timedelta(idx))
+    #     .flatmap(lambda last_sun: just(last_sun + datetime.timedelta(6))
+    #     .flatmap(lambda next_sat: just(last_sun.strftime('%Y-%m-%d') + ' - '+
+    #         next_sat.strftime('%Y-%m-%d')))))) # NOQA
+    google_weeks = create_google_weeks(dates)
+    google_weeks_plus_nan = plus_nan(create_google_weeks)
 
     # Create dataframes from the strategies above
     google_df = draw(data_frames([
-        column('file', elements=google_files_plus_nan),
-        column('week', elements=google_weeks_plus_nan),
+        column('file', elements=google_files),
+        column('week', elements=google_weeks),
         column('trend',
-               elements=plus_nan(integers(min_value=0, max_value=100)))]))
+               elements=integers(min_value=0, max_value=100))]))
 
     # Since this file is crucial to structuring the merged pdf, it's hard-coded
     state_names_df = pd.DataFrame({'StateName': state_names,
                                   'State': state_abbreviations})
 
     stores_df = draw(data_frames([
-        column('Store', elements=stores_plus_nan, unique=True),
+        column('Store', elements=stores, unique=True),
         column('StoreType',
                elements=sampled_from(['a', 'b', 'c', 'd', np.NaN])),
         column('Assortment', elements=sampled_from(['a', 'b', 'c', np.NaN])),
@@ -166,16 +166,16 @@ def create_dataframes(draw):
         ]))
 
     store_states_df = draw(data_frames([
-        column('Store', elements=stores_plus_nan, unique=True),
-        column('State', elements=states_plus_nan)
+        column('Store', elements=stores, unique=True),
+        column('State', elements=states)
         ]))
 
     train_df = draw(data_frames([
-        column('Store', elements=stores_plus_nan),
-        column('DayOfWeek', elements=integers_plus_nan),
-        column('Date', elements=dates_plus_nan),
-        column('Sales', elements=integers_plus_nan),
-        column('Customers', elements=integers_plus_nan),
+        column('Store', elements=stores),
+        column('DayOfWeek', elements=integers()),
+        column('Date', elements=dates),
+        column('Sales', elements=integers()),
+        column('Customers', elements=integers()),
         column('Open', elements=sampled_from([0, 1, np.NaN])),
         column('Promo', elements=sampled_from([0, 1, np.NaN])),
         column('StateHoliday',
@@ -184,24 +184,24 @@ def create_dataframes(draw):
         ]))
 
     weather_df = draw(data_frames([
-        column('file', elements=plus_nan(sampled_from(state_names))),
-        column('date', elements=dates_plus_nan),
-        column('Max_TemperatureC', elements=integers_plus_nan),
-        column('Min_TemperatureC', elements=integers_plus_nan),
-        column('Dew_PointC', elements=integers_plus_nan),
-        column('MeanDew_PointC', elements=integers_plus_nan),
-        column('MinDew_PointC', elements=integers_plus_nan),
-        column('Max_Humidity', elements=integers_plus_nan),
-        column('Mean_Humidity', elements=integers_plus_nan),
-        column('Min_Humidity', elements=integers_plus_nan),
-        column('Max_Sea_Level_PressurehPa', elements=integers_plus_nan),
-        column('Mean_Sea_Level_PressurehPa', elements=integers_plus_nan),
-        column('Min_Sea_Level_PressurehPa', elements=integers_plus_nan),
+        column('file', elements=sampled_from(state_names)),
+        column('date', elements=dates),
+        column('Max_TemperatureC', elements=integers()),
+        column('Min_TemperatureC', elements=integers()),
+        column('Dew_PointC', elements=integers()),
+        column('MeanDew_PointC', elements=integers()),
+        column('MinDew_PointC', elements=integers()),
+        column('Max_Humidity', elements=integers()),
+        column('Mean_Humidity', elements=integers()),
+        column('Min_Humidity', elements=integers()),
+        column('Max_Sea_Level_PressurehPa', elements=integers()),
+        column('Mean_Sea_Level_PressurehPa', elements=integers()),
+        column('Min_Sea_Level_PressurehPa', elements=integers()),
         column('Max_VisibilityKm', elements=floats(allow_infinity=False)),
         column('Mean_VisibilityKm', elements=floats(allow_infinity=False)),
         column('Min_VisibilitykM', elements=floats(allow_infinity=False)),
-        column('Max_Wind_SpeedKm_h', elements=integers_plus_nan),
-        column('Mean_Wind_SpeedKm_h', elements=integers_plus_nan),
+        column('Max_Wind_SpeedKm_h', elements=integers()),
+        column('Mean_Wind_SpeedKm_h', elements=integers()),
         column('Max_Gust_SpeedKm_h', elements=floats(allow_infinity=False)),
         column('Precipitationmm', elements=floats(allow_infinity=False)),
         column('CloudCover', elements=sampled_from(['NA'] +
@@ -214,7 +214,7 @@ def create_dataframes(draw):
                 'Rain-Hail-Thunderstorm', 'Fog-Rain-Snow-Hail',
                 'Fog-Thunderstorm', 'Rain-Snow-Thunderstorm',
                 'Fog-Rain-Hail-Thunderstorm', 'Snow-Hail'])),
-        column('WindDirDegrees', elements=integers_plus_nan),
+        column('WindDirDegrees', elements=integers())
         ]))
 
     return {'googletrend.csv': google_df, 'state_names.csv': state_names_df,
@@ -232,7 +232,7 @@ def test_convert_to_snake_case(t):
 
 @pytest.mark.props
 @given(create_dataframes())
-@settings(suppress_health_check=[HealthCheck.too_slow])
+@settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 def test_merge_csvs_properties(dfs):
     # google = dfs['googletrend']
     # state_names = dfs['state_names']
@@ -248,49 +248,48 @@ def test_merge_csvs_properties(dfs):
     # assert len(train) == 0 or train['Store'].dtype == 'int64'
     # assert len(weather) == 0 or weather['file'].dtype == 'object'
 
-    # EDIT REMOVE THIS LATER
-    assume(len(dfs['store.csv']) > 0)
-    new_df = make_dataset.merge_csvs(dfs)
+    df_dict = make_dataset.merge_csvs(dfs)
 
     # Check on csv and dataframe naming formatting
-    assert '.csv' not in ''.join(list(new_df.keys()))
-    assert 'googletrend' not in list(new_df.keys())
+    assert '.csv' not in ''.join(list(df_dict.keys()))
+    assert 'googletrend' not in list(df_dict.keys())
     # Check on column naming formatting
-    assert 'min_visibilityk_m' not in new_df['weather'].columns
-    assert 'min_visibility_km' in new_df['weather'].columns
-    assert ''.join(list(new_df.keys())).lower() == ''.join(list(new_df.keys()))
+    assert 'min_visibilityk_m' not in df_dict['weather'].columns
+    assert 'min_visibility_km' in df_dict['weather'].columns
+    assert ''.join(list(df_dict.keys())).lower() ==\
+           ''.join(list(df_dict.keys()))
     # Check on nan-filling
 
     # EDIT UPDATE THIS FOR THE WHOLE DATAFRAME WHEN IT'S DONE
-    for key, df in new_df.items():
-        for col in df.columns:
-            if col not in ['store', 'sales', 'date', 'week']:
-                # Check that NaNs are removed appropriately
-                # For 'store', 'sales', 'date', 'week': NaNs fundamentally
-                # change the meaning of the data, so those remain NaNs and will
-                # be removed in the merge later
-                assert len(new_df[key]) == 0 or\
-                    (new_df[key][col].isnull()).all() or\
-                    new_df[key][col].isnull().sum() == 0
+    # Check that NaNs are removed appropriately.
+    # For 'store', 'sales', 'date', 'week': NaNs fundamentally
+    # change the meaning of the data, so those remain NaNs and will
+    # be removed in the merge later
+    for name, df in df_dict.items():
+        if len(df) > 0 and df.isnull().any().any():
+            for col in df.columns:
+                if col not in ['store', 'sales', 'date', 'week']:
+                    assert df[col].isnull().sum() == 0 or\
+                        (df[col].isnull()).all()
 
-    assert len(new_df['store']) == 0 or\
-        (new_df['store'].promo2_since_week.isnull()).all() or\
-        new_df['store'].promo2_since_week.isnull().sum() == 0
-    assert len(new_df['store']) == 0 or\
-        (new_df['store'].promo2_since_year.isnull()).all() or\
-        new_df['store'].promo2_since_year.isnull().sum() == 0
-    assert len(new_df['store']) == 0 or\
-        (new_df['store'].promo_interval.isnull()).all() or\
-        new_df['store'].promo_interval.isnull().sum() == 0
-    assert len(new_df['store']) == 0 or\
-        (new_df['store'].competition_distance.isnull()).all() or\
-        new_df['store'].competition_distance.isnull().sum() == 0
-    assert len(new_df['store']) == 0 or\
-        (new_df['store'].competition_open_since_month.isnull()).all() or\
-        new_df['store'].competition_open_since_month.isnull().sum() == 0
-    assert len(new_df['store']) == 0 or\
-        (new_df['store'].competition_open_since_year.isnull()).all() or\
-        new_df['store'].competition_open_since_year.isnull().sum() == 0
+    assert len(df_dict['store']) == 0 or\
+        (df_dict['store'].promo2_since_week.isnull()).all() or\
+        df_dict['store'].promo2_since_week.isnull().sum() == 0
+    assert len(df_dict['store']) == 0 or\
+        (df_dict['store'].promo2_since_year.isnull()).all() or\
+        df_dict['store'].promo2_since_year.isnull().sum() == 0
+    assert len(df_dict['store']) == 0 or\
+        (df_dict['store'].promo_interval.isnull()).all() or\
+        df_dict['store'].promo_interval.isnull().sum() == 0
+    assert len(df_dict['store']) == 0 or\
+        (df_dict['store'].competition_distance.isnull()).all() or\
+        df_dict['store'].competition_distance.isnull().sum() == 0
+    assert len(df_dict['store']) == 0 or\
+        (df_dict['store'].competition_open_since_month.isnull()).all() or\
+        df_dict['store'].competition_open_since_month.isnull().sum() == 0
+    assert len(df_dict['store']) == 0 or\
+        (df_dict['store'].competition_open_since_year.isnull()).all() or\
+        df_dict['store'].competition_open_since_year.isnull().sum() == 0
 
 
 def test_merge_csvs():

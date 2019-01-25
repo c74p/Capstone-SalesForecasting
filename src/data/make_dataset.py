@@ -61,38 +61,30 @@ def replace_nans(column: pd.Series) -> None:
           'date' or 'week'
         - For columns of Ints, replace with the mean coerced to Int, unless the
           column is 'store'
-    This is consistent with data-wrangling; the replaced variables are
+    This is consistent with the data-wrangling; the replaced variables are
     independent variables that aren't crucial.  'store', 'date', and 'week' are
-    important variables where a NaN couldn't be imputed from the data. 'sales'
-    is the target variable. NaN valuse for 'store', 'sales', 'date' and 'week'
-    will be thrown out when the dataframes are merged.
+    crucial variables where a nan couldn't be imputed from the data. 'sales'
+    is the target variable. Rows with nans for 'store', 'sales', 'date' and
+    'week' will be thrown out when the dataframes are merged.
 
     This function changes the values in place; no value is returned.
     """
     # Fill NaNs for columns of floats with the mean as above
+    # 'store' and 'sales' should not be floats anyway; but if there are any
+    # NaNs, pandas will coerce the column dtype to float, thus we check
     if column.dtype == 'float64' and column.name not in ['store', 'sales'] and\
             len(column) > 0:
-        # if column.isnull().any():
-        #    print('float')
-        #    print(column.name)
-        #    print(column.isnull().sum())
-        # column = column.fillna(column.mean(), inplace=True)
-        # column = column.fillna(column.mean())
         column.fillna(column.mean(), inplace=True)
 
     # Fill NaNs for columns of objects with 'None' (except 'date'/'week') as
     # above
     if column.dtype == 'object' and column.name not in ['date', 'week']:
-        # column = column.fillna('None', inplace=True)
-        # column = column.fillna('None')
         column.fillna('None', inplace=True)
 
     # Fill NaNs for columns of ints with mean coerced to int (except 'store'/
     # 'sales') as above
     if column.dtype == 'int64' and column.name not in ['store', 'sales'] and\
             len(column) > 0:
-                # column = column.fillna(int(column.mean()), inplace=True)
-                # column = column.fillna(int(column.mean()))
                 column.fillna(int(column.mean()), inplace=True)
 
 
@@ -116,36 +108,20 @@ def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         dfs['google'] = dfs.pop('googletrend')
 
     # Fix spelling error in weather dataframe
-    if 'weather' in dfs.keys() and 'Min_VisibilitykM' in dfs['weather'].columns:
+    if 'weather' in dfs.keys() and 'Min_VisibilitykM' in\
+            dfs['weather'].columns:
         dfs['weather'].rename(columns={'Min_VisibilitykM': 'Min_VisibilityKm'},
                               inplace=True)
 
+    # Replace any nans using the replace_nans function
+    # Note that as currently written, 'store', 'sales', 'date', or 'week'
+    # columns don't get nans replaced (see replace_nans docstring for
+    # justification)
     for df in dfs.values():
         col_list = list(df.columns)
         df.columns = pd.Index(map(convert_to_snake_case, col_list))
         for column in df.columns:
             replace_nans(df[column])
-
-    for key, df in dfs.items():
-        for col in df.columns:
-            if len(df > 0) and df[col].isnull().any():
-                print(key, col, df[col].dtype)
-                print(df[df[col].isnull()])
-
-    # dfs['store']['promo2_since_week'] =\
-    #     dfs['store'].promo2_since_week.fillna(dfs['store']
-    #                                           .promo2_since_week.mean(),
-    #                                           inplace=True)
-    # dfs['store']['promo2_since_year'] =\
-    # dfs['store'].promo2_since_year.fillna(dfs['store']
-    #                                      .promo2_since_year.mean(),
-    #                                      inplace=True)
-    # dfs['store']['promo_interval'] =\
-    #     dfs['store'].promo_interval.fillna('None', inplace=True)
-    # dfs['store']['competition_distance'] =\
-    #     dfs['store'].competition_distance.fillna(dfs['store']
-    #                                              .competition_distance.mean(),
-    #                                              inplace=True)
 
     new_df = {}
     for k, v in dfs.items():
