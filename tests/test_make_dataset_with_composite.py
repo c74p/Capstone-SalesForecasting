@@ -89,15 +89,16 @@ google_file_vals = ["Rossmann_DE", "Rossmann_DE_BE", "Rossmann_DE_BW",
                     "Rossmann_DE_ST", "Rossmann_DE_TH"]
 
 
+# define a 'plus_nan' strategy wrapper to explicitly include np.NaN
+@composite
+def plus_nan(draw, strat: SearchStrategy) -> SearchStrategy:
+    v = draw(one_of(just(np.NaN), strat))
+    return v
+
+
 @composite
 def create_dataframes(draw):
     """Generate dataframes for property-based testing."""
-
-    # define a 'plus_nan' strategy wrapper to explicitly include np.NaN
-    @composite
-    def plus_nan(draw, strat: SearchStrategy) -> SearchStrategy:
-        v = draw(one_of(just(np.NaN), strat))
-        return v
 
     # create strategies to be used in creating dataframes
     stores = integers(min_value=0, max_value=2000)
@@ -110,7 +111,8 @@ def create_dataframes(draw):
                       max_value=datetime.datetime(2015, 12, 12))
     dates_plus_nan = plus_nan(dates)
 
-    integers_plus_nan = plus_nan(integers)
+    integers_plus_nan = plus_nan(integers())
+    # integers_plus_nan = plus_nan(integers)
 
     # Take the 'states' strategy and prepend 'Rossmann_DE' to what it gives you
     # Then add in NaN as a possibility for good measure
@@ -135,14 +137,15 @@ def create_dataframes(draw):
     #     .flatmap(lambda next_sat: just(last_sun.strftime('%Y-%m-%d') + ' - '+
     #         next_sat.strftime('%Y-%m-%d')))))) # NOQA
     google_weeks = create_google_weeks(dates)
-    google_weeks_plus_nan = plus_nan(create_google_weeks)
+    google_weeks_plus_nan = plus_nan(create_google_weeks(dates))
 
     # Create dataframes from the strategies above
     google_df = draw(data_frames([
-        column('file', elements=google_files),
-        column('week', elements=google_weeks),
+        column('file', elements=google_files_plus_nan),
+        column('week', elements=google_weeks_plus_nan),
         column('trend',
-               elements=integers(min_value=0, max_value=100))]))
+               # elements=integers(min_value=0, max_value=100))]))
+               elements=integers_plus_nan)]))
 
     # Since this file is crucial to structuring the merged pdf, it's hard-coded
     state_names_df = pd.DataFrame({'StateName': state_names,
@@ -167,16 +170,16 @@ def create_dataframes(draw):
         ]))
 
     store_states_df = draw(data_frames([
-        column('Store', elements=stores, unique=True),
-        column('State', elements=states)
+        column('Store', elements=stores_plus_nan, unique=True),
+        column('State', elements=states_plus_nan)
         ]))
 
     train_df = draw(data_frames([
-        column('Store', elements=stores),
-        column('DayOfWeek', elements=integers()),
-        column('Date', elements=dates),
-        column('Sales', elements=integers()),
-        column('Customers', elements=integers()),
+        column('Store', elements=stores_plus_nan),
+        column('DayOfWeek', elements=integers_plus_nan),
+        column('Date', elements=dates_plus_nan),
+        column('Sales', elements=integers_plus_nan),
+        column('Customers', elements=integers_plus_nan),
         column('Open', elements=sampled_from([0, 1, np.NaN])),
         column('Promo', elements=sampled_from([0, 1, np.NaN])),
         column('StateHoliday',
@@ -185,27 +188,27 @@ def create_dataframes(draw):
         ]))
 
     weather_df = draw(data_frames([
-        column('file', elements=sampled_from(state_names)),
-        column('date', elements=dates),
-        column('Max_TemperatureC', elements=integers()),
-        column('Min_TemperatureC', elements=integers()),
-        column('Dew_PointC', elements=integers()),
-        column('MeanDew_PointC', elements=integers()),
-        column('MinDew_PointC', elements=integers()),
-        column('Max_Humidity', elements=integers()),
-        column('Mean_Humidity', elements=integers()),
-        column('Min_Humidity', elements=integers()),
-        column('Max_Sea_Level_PressurehPa', elements=integers()),
-        column('Mean_Sea_Level_PressurehPa', elements=integers()),
-        column('Min_Sea_Level_PressurehPa', elements=integers()),
+        column('file', elements=sampled_from([np.NaN] + state_names)),
+        column('date', elements=dates_plus_nan),
+        column('Max_TemperatureC', elements=integers_plus_nan),
+        column('Min_TemperatureC', elements=integers_plus_nan),
+        column('Dew_PointC', elements=integers_plus_nan),
+        column('MeanDew_PointC', elements=integers_plus_nan),
+        column('MinDew_PointC', elements=integers_plus_nan),
+        column('Max_Humidity', elements=integers_plus_nan),
+        column('Mean_Humidity', elements=integers_plus_nan),
+        column('Min_Humidity', elements=integers_plus_nan),
+        column('Max_Sea_Level_PressurehPa', elements=integers_plus_nan),
+        column('Mean_Sea_Level_PressurehPa', elements=integers_plus_nan),
+        column('Min_Sea_Level_PressurehPa', elements=integers_plus_nan),
         column('Max_VisibilityKm', elements=floats(allow_infinity=False)),
         column('Mean_VisibilityKm', elements=floats(allow_infinity=False)),
         column('Min_VisibilitykM', elements=floats(allow_infinity=False)),
-        column('Max_Wind_SpeedKm_h', elements=integers()),
-        column('Mean_Wind_SpeedKm_h', elements=integers()),
+        column('Max_Wind_SpeedKm_h', elements=integers_plus_nan),
+        column('Mean_Wind_SpeedKm_h', elements=integers_plus_nan),
         column('Max_Gust_SpeedKm_h', elements=floats(allow_infinity=False)),
         column('Precipitationmm', elements=floats(allow_infinity=False)),
-        column('CloudCover', elements=sampled_from(['NA'] +
+        column('CloudCover', elements=sampled_from(['NA', np.NaN] +
                [str(i) for i in range(0, 9)])),
         column('Events', elements=sampled_from([np.NaN] +
                ['Rain', 'Fog-Rain-Snow', 'Snow', 'Rain-Snow', 'Fog-Snow',
@@ -215,7 +218,7 @@ def create_dataframes(draw):
                 'Rain-Hail-Thunderstorm', 'Fog-Rain-Snow-Hail',
                 'Fog-Thunderstorm', 'Rain-Snow-Thunderstorm',
                 'Fog-Rain-Hail-Thunderstorm', 'Snow-Hail'])),
-        column('WindDirDegrees', elements=integers())
+        column('WindDirDegrees', elements=integers_plus_nan),
         ]))
 
     return {'googletrend.csv': google_df, 'state_names.csv': state_names_df,
