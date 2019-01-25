@@ -1,5 +1,5 @@
 import datetime
-from hypothesis import example, given, HealthCheck, settings
+from hypothesis import assume, example, given, HealthCheck, settings
 from hypothesis.extra.pandas import column, data_frames
 from hypothesis.strategies import composite, datetimes, integers, just
 from hypothesis.strategies import sampled_from, text
@@ -227,6 +227,8 @@ def test_merge_csvs_properties(dfs):
     # assert len(train) == 0 or train['Store'].dtype == 'int64'
     # assert len(weather) == 0 or weather['file'].dtype == 'object'
 
+    # EDIT REMOVE THIS LATER
+    assume(len(dfs['store.csv']) > 0)
     new_df = make_dataset.merge_csvs(dfs)
 
     # Check on csv and dataframe naming formatting
@@ -238,12 +240,12 @@ def test_merge_csvs_properties(dfs):
     assert ''.join(list(new_df.keys())).lower() == ''.join(list(new_df.keys()))
     # Check on nan-filling
 
-    # EDIT ADD ONE HERE FOR THE WHOLE DATAFRAME WHEN IT'S DONE
-    for df in new_df.values():
-        for col in df:  # col = column, name-shadowing made me choose 'col'
-            assert len(new_df[df]) == 0 # or\
-                # (new_df[df][col].isnull()).all() or\
-                # new_df[df][col].isnull().sum() == 0
+    # EDIT UPDATE THIS FOR THE WHOLE DATAFRAME WHEN IT'S DONE
+    for key, df in new_df.items():
+        for col in df.columns:  # col = column, name-shadowing made me choose 'col'
+            assert len(new_df[key]) == 0 or\
+                (new_df[key][col].isnull()).all() or\
+                new_df[key][col].isnull().sum() == 0
 
     assert len(new_df['store']) == 0 or\
         (new_df['store'].promo2_since_week.isnull()).all() or\

@@ -53,6 +53,37 @@ def convert_to_snake_case(string: str) -> str:
     return draft.replace('__', '_')
 
 
+def replace_nans(column: pd.Series) -> None:
+    """
+    Replace NaNs as appropriate in given columns:
+        - For columns of Floats, replace with the mean
+        - For columns of Objects, replace with 'None' unless the column is
+          'date' or 'week'
+        - For columns of Ints, replace with the mean coerced to Int, unless the
+          column is 'store'
+    This is consistent with data-wrangling; the replaced variables are
+    independent variables that aren't crucial.  'store', 'date', and 'week' are
+    important variables where a NaN couldn't be imputed from the data. 'sales'
+    is the target variable. NaN valuse for 'store', 'sales', 'date' and 'week'
+    will be thrown out when the dataframes are merged.
+
+    Note that this function changes the values in place; no value is returned.
+    """
+    # Fill NaNs for columns of floats with the mean as above
+    if column.dtype == 'float64':
+        column = column.fillna(column.mean(), inplace=True)
+
+    # Fill NaNs for columns of objects with 'None' (except 'date'/'week') as
+    # above
+    if column.dtype == 'object' and column not in ['date', 'week']:
+        column = column.fillna('None', inplace=True)
+
+    # Fill NaNs for columns of ints with mean coerced to int (except 'store'/
+    # 'sales') as above
+    if column.dtype == 'int64' and column not in ['store', 'sales']:
+        column = column.fillna(int(column.mean()), inplace=True)
+
+
 def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Merge the csvs from import_csvs into a single pd.DataFrame.
 
@@ -81,19 +112,16 @@ def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         col_list = list(df.columns)
         df.columns = pd.Index(map(convert_to_snake_case, col_list))
         for column in df.columns:
-            if df[column].dtype == 'float64':
-                df[column] = df[column].fillna(df[column].mean(), inplace=True)
-            if df[column].dtype == 'object':
-                df[column] = df[column].fillna('None', inplace=True)
+            replace_nans(df.columns)
 
     # dfs['store']['promo2_since_week'] =\
     #     dfs['store'].promo2_since_week.fillna(dfs['store']
     #                                           .promo2_since_week.mean(),
     #                                           inplace=True)
     # dfs['store']['promo2_since_year'] =\
-    #     dfs['store'].promo2_since_year.fillna(dfs['store']
-    #                                           .promo2_since_year.mean(),
-    #                                           inplace=True)
+    # dfs['store'].promo2_since_year.fillna(dfs['store']
+    #                                      .promo2_since_year.mean(),
+    #                                      inplace=True)
     # dfs['store']['promo_interval'] =\
     #     dfs['store'].promo_interval.fillna('None', inplace=True)
     # dfs['store']['competition_distance'] =\
