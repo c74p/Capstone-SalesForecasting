@@ -42,3 +42,9 @@ weather: pd.DataFrame = dfs['weather.csv']  # see below for nans
 # merge appropriately
 
 # save as new dataframe
+print(df.head())
+print(goog.head())
+print(states.head())
+print(names.head())
+print(stores.head())
+print(weather.head())

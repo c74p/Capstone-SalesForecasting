@@ -21,13 +21,15 @@ cd.shared.directory = os.path.join(PROJ_ROOT, 'data', 'raw')
 
 # Pull in all csvs, ignoring test.csv and submission.csv because no
 # target-variable data in those
-dfs = make_dataset.import_csvs(cd.shared.directory, ignore_files=['test.csv',
-                               'sample_submission.csv'], header=0,
-                               low_memory=False)
+dfs_dict = make_dataset.import_csvs(cd.shared.directory,
+                                    ignore_files=['test.csv',
+                                                  'sample_submission.csv'],
+                                    header=0,
+                                    low_memory=False)
 
-for name in dfs.keys():
+for name in dfs_dict.keys():
     print(name + ':')
-    cd.display.table(dfs[name].head())
-    # cd.shared.put(name, dfs[name])
+    cd.display.table(dfs_dict[name].head())
 
-cd.shared.put('dfs', dfs)
+# Make sure to share dfs_dict in memory for next step
+cd.shared.put('dfs_dict', dfs_dict)

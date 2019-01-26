@@ -2,12 +2,8 @@ import cauldron as cd
 from cauldron.steptest import StepTestCase
 import os
 import pandas as pd
-import sys
 from typing import List
 from unittest import mock
-
-sys.path.append('../../src/data')
-import make_dataset # NOQA, need the line above to get directories right
 
 
 class TestNotebook_Data_Wrangling_S01(StepTestCase):
@@ -19,19 +15,23 @@ class TestNotebook_Data_Wrangling_S01(StepTestCase):
         """ Each of the csvs needed gets opened and placed in shared memory"""
 
         # Hard-coding here; it's literally what we need from this notebook
-        files: List[str] = ['googletrend.csv', 'sample_submission.csv',
-                            'state_names.csv', 'store.csv', 'store_states.csv',
-                            'train.csv', 'weather.csv']
+        files: List[str] = ['googletrend.csv', 'state_names.csv', 'store.csv',
+                            'store_states.csv', 'train.csv', 'weather.csv']
 
+        # List to keep track of csvs that got pulled
         csvs_pulled: List[str] = []
 
+        # Run step 1 and pull out the shared dataframes dict
         self.run_step('S01-import.py')
+        dfs_dict = cd.shared.fetch('dfs_dict')
 
         # Simply check that each file in files is pulled
         # Note that our /tests testing checks that the pull itself is correct
         # after merging
+        # for file in files:
         for file in files:
-            pulled: pd.DataFrame = cd.shared.fetch(file)
+            pulled: pd.DataFrame = dfs_dict[file]
+            print(pulled)
             assert pulled is not None
             csvs_pulled.append(file)
 
