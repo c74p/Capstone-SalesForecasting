@@ -242,12 +242,14 @@ def test_merge_csvs_properties(dfs):
 
     # Check on csv and dataframe naming formatting
     assert '.csv' not in ''.join(list(df_dict.keys()))
-    assert 'googletrend' not in list(df_dict.keys())
+
     # Check on column naming formatting
     assert 'min_visibilityk_m' not in df_dict['weather'].columns
     assert 'min_visibility_km' in df_dict['weather'].columns
-    assert ''.join(list(df_dict.keys())).lower() ==\
+    # Make sure all column names are lower-case
+    assert ''.join(list(df_dict.keys())).lower() == \
            ''.join(list(df_dict.keys()))
+
     # EDIT UPDATE THIS FOR THE WHOLE DATAFRAME WHEN IT'S DONE
     # Check that NaNs are removed appropriately.
     # For 'store', 'sales', 'date', 'week': NaNs fundamentally
@@ -257,8 +259,11 @@ def test_merge_csvs_properties(dfs):
         if len(df) > 0 and df.isnull().any().any():
             for col in df.columns:
                 if col not in ['store', 'sales', 'date', 'week']:
-                    assert df[col].isnull().sum() == 0 or\
+                    assert df[col].isnull().sum() == 0 or \
                         (df[col].isnull()).all()
+
+    # Check that googletrend column 'file' values get updated correctly
+    # assert all(goo
 
 
 def test_merge_csvs():

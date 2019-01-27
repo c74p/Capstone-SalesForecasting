@@ -103,10 +103,6 @@ def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         if key.endswith('.csv'):
             dfs[key[:-4]] = dfs.pop(key)
 
-    # rename googletrend if needed
-    if 'googletrend' in dfs.keys():
-        dfs['google'] = dfs.pop('googletrend')
-
     # Fix spelling error in weather dataframe
     if 'weather' in dfs.keys() and 'Min_VisibilitykM' in\
             dfs['weather'].columns:
