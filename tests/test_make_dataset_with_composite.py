@@ -240,12 +240,14 @@ def test_merge_csvs_properties(dfs):
 
     df_dict = make_dataset.merge_csvs(dfs)
 
+    # EDIT remove this later if still considered a bad idea
     # Check on csv and dataframe naming formatting
-    assert '.csv' not in ''.join(list(df_dict.keys()))
+    # assert '.csv' not in ''.join(list(df_dict.keys()))
 
-    # Check on column naming formatting
-    assert 'min_visibilityk_m' not in df_dict['weather'].columns
-    assert 'min_visibility_km' in df_dict['weather'].columns
+    # Check on column naming
+    if 'weather.csv' in df_dict.keys():
+        assert 'min_visibilityk_m' not in df_dict['weather.csv'].columns
+        assert 'min_visibility_km' in df_dict['weather.csv'].columns
     # Make sure all column names are lower-case
     assert ''.join(list(df_dict.keys())).lower() == \
            ''.join(list(df_dict.keys()))
@@ -262,8 +264,12 @@ def test_merge_csvs_properties(dfs):
                     assert df[col].isnull().sum() == 0 or \
                         (df[col].isnull()).all()
 
-    # Check that googletrend column 'file' values get updated correctly
-    # assert all(goo
+    # Check that googletrend column 'file' values get translated to a 'state'
+    # column correctly
+    if 'googletrend.csv' in df_dict.keys() and \
+            len(df_dict['googletrend.csv']) > 0:
+        google = df_dict['googletrend.csv']
+        assert all(google[google.state.str.len() > 2] == 'HB,NI')
 
 
 def test_merge_csvs():

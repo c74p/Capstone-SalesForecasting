@@ -98,16 +98,16 @@ def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
 
     # Strip '.csv' from key name if present
-    keys = list(dfs.keys())
-    for key in keys:
-        if key.endswith('.csv'):
-            dfs[key[:-4]] = dfs.pop(key)
+    # keys = list(dfs.keys())
+    # for key in keys:
+    # if key.endswith('.csv'):
+    # dfs[key[:-4]] = dfs.pop(key)
 
     # Fix spelling error in weather dataframe
-    if 'weather' in dfs.keys() and 'Min_VisibilitykM' in\
-            dfs['weather'].columns:
-        dfs['weather'].rename(columns={'Min_VisibilitykM': 'Min_VisibilityKm'},
-                              inplace=True)
+    if 'weather.csv' in dfs.keys() and 'Min_VisibilitykM' in \
+            dfs['weather.csv'].columns:
+        dfs['weather.csv'].rename(columns={'Min_VisibilitykM':
+                                           'Min_VisibilityKm'}, inplace=True)
 
     # Replace any nans using the replace_nans function
     # Note that as currently written, 'store', 'sales', 'date', or 'week'
@@ -118,6 +118,11 @@ def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         df.columns = pd.Index(map(convert_to_snake_case, col_list))
         for column in df.columns:
             replace_nans(df[column])
+
+    # Create column 'state' in googletrend.csv dataframe with state abbrevs
+    if 'googletrend.csv' in dfs.keys() and 'file' in \
+            dfs['googletrend.csv'].columns:
+        dfs['googletrend.csv']['state'] = dfs['googletrend.csv'].file.str[-2:]
 
     new_df = {}
     for k, v in dfs.items():
