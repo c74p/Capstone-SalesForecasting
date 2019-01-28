@@ -271,6 +271,8 @@ def test_merge_csvs_properties(dfs):
         google = df_dict['googletrend.csv']
         assert all(google[google.state.str.len() > 2] == 'HB,NI')
 
+    # EDIT REMOVE THIS LATER
+
 
 def test_merge_csvs():
     pass
