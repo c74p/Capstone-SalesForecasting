@@ -1,19 +1,20 @@
 import datetime
 from hypothesis import example, given, HealthCheck, settings
+from hypothesis import Verbosity # NOQA
 from hypothesis.extra.pandas import column, data_frames
 from hypothesis.strategies import composite, datetimes, floats, integers, just
 from hypothesis.strategies import one_of, sampled_from, SearchStrategy, text
 import numpy as np
 import pandas as pd
 import pytest
-from src.data import make_dataset
 from unittest import TestCase, mock
 
+import sys, os # NOQA
+this_path = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, this_path + '/../')
+from src.data import make_dataset # NOQA
+
 # This is the test file for the src/data/make_dataset.py file.
-# Note that it uses the object-oriented unittest style for some parts, and
-# the function approach (after definition of appropriate strategies) for
-# property-based testing in Hypothesis.  I found the function approach easier
-# to use in Hypothesis.
 
 
 class test_Import_Csvs(TestCase):
@@ -235,7 +236,10 @@ def test_convert_to_snake_case(t):
 
 @pytest.mark.props
 @given(create_dataframes())
+@example({'googletrend.csv': pd.DataFrame({'file': ['HB,NI']})})
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
+# Add in the setting below to @settings above when needed
+#          verbosity=Verbosity.verbose)
 def test_merge_csvs_properties(dfs):
 
     df_dict = make_dataset.merge_csvs(dfs)
@@ -265,13 +269,14 @@ def test_merge_csvs_properties(dfs):
                         (df[col].isnull()).all()
 
     # Check that googletrend column 'file' values get translated to a 'state'
-    # column correctly
-    if 'googletrend.csv' in df_dict.keys() and \
-            len(df_dict['googletrend.csv']) > 0:
+    # column correctly - everything in 'state' column should be 2 chars except
+    # for 'HB,NI'
+    if 'googletrend.csv' in df_dict.keys():
         google = df_dict['googletrend.csv']
-        assert all(google[google.state.str.len() > 2] == 'HB,NI')
-
-    # EDIT REMOVE THIS LATER
+        if 'file' in google.columns and len(google[google.file.notnull()]) > 0:
+            assert all(google[google['state'].str.len() > 2] == 'HB,NI')
+            assert all(google.loc[google.state != 'HB,NI', 'state'].str.len()
+                       == 2)
 
 
 def test_merge_csvs():

@@ -120,9 +120,16 @@ def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
             replace_nans(df[column])
 
     # Create column 'state' in googletrend.csv dataframe with state abbrevs
-    if 'googletrend.csv' in dfs.keys() and 'file' in \
-            dfs['googletrend.csv'].columns:
-        dfs['googletrend.csv']['state'] = dfs['googletrend.csv'].file.str[-2:]
+    # Most abbreviations are the last two characters; one is special ('HB,NI')
+    if 'googletrend.csv' in dfs.keys():
+        google = dfs['googletrend.csv']
+        if 'file' in google.columns and len(google[google.file.notnull()]) > 0:
+            cond = lambda series: series.str.endswith('HB,NI') # NOQA
+            # Where cond is true, hard-code 'HB,NI'
+            google['state'] = google['file'].mask(cond, 'HB,NI', inplace=True)
+            # Where cond is NOT true, take the last two (syntax is odd here)
+            google['state'] = google['file'].where(cond,
+                                                   google['file'].str[-2:])
 
     new_df = {}
     for k, v in dfs.items():
