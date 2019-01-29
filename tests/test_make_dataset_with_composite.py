@@ -1,7 +1,7 @@
 import datetime
-from hypothesis import example, given, HealthCheck, settings
+from hypothesis import assume, example, given, HealthCheck, settings
 from hypothesis import Verbosity # NOQA
-from hypothesis.extra.pandas import column, data_frames
+from hypothesis.extra.pandas import column, data_frames, range_indexes
 from hypothesis.strategies import composite, datetimes, floats, integers, just
 from hypothesis.strategies import one_of, sampled_from, SearchStrategy, text
 import numpy as np
@@ -143,7 +143,8 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
     state_names_df = pd.DataFrame({'StateName': state_names,
                                   'State': state_abbreviations})
 
-    stores_df = draw(data_frames([
+    # Note index gives min and max sizes for this dataframe (not empty)
+    stores_df = draw(data_frames(columns=[
         column('Store', elements=stores_plus_nan, unique=True),
         column('StoreType',
                elements=sampled_from(['a', 'b', 'c', 'd', np.NaN])),
@@ -161,15 +162,16 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
                elements=floats(allow_infinity=False, allow_nan=True)),
         column('PromoInterval',
                elements=sampled_from(['Feb,May,Aug,Nov', 'Jan,Apr,Jul,Oct',
-                                      'Mar,Jun,Sept,Dec', np.NaN]))
-        ]))
+                                      'Mar,Jun,Sept,Dec', np.NaN]))],
+        index=range_indexes(min_size=10, max_size=1000)))
 
     store_states_df = draw(data_frames([
         column('Store', elements=stores_plus_nan, unique=True),
         column('State', elements=states_plus_nan)
         ]))
 
-    train_df = draw(data_frames([
+    # Note index gives min and max sizes for this dataframe (not empty)
+    train_df = draw(data_frames(columns=[
         column('Store', elements=stores_plus_nan),
         column('DayOfWeek', elements=integers_plus_nan),
         column('Date', elements=dates_plus_nan),
@@ -179,8 +181,9 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
         column('Promo', elements=sampled_from([0, 1, np.NaN])),
         column('StateHoliday',
                elements=sampled_from(['0', 'a', 'b', 'c', np.NaN])),
-        column('SchoolHoliday', elements=sampled_from([0, 1, np.NaN]))
-        ]))
+        column('SchoolHoliday', elements=sampled_from([0, 1, np.NaN]))],
+        index=range_indexes(min_size=10, max_size=10000)
+        ))
 
     # Note that there are a lot of integer-valued columns in here; that's what
     # came out of the original dataframe. May need to revisit whether it's
@@ -189,10 +192,11 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
         column('file', elements=sampled_from([np.NaN] + state_names)),
         column('date', elements=dates_plus_nan),
         column('Max_TemperatureC', elements=integers_plus_nan),
+        column('Mean_TemperatureC', elements=integers_plus_nan),
         column('Min_TemperatureC', elements=integers_plus_nan),
         column('Dew_PointC', elements=integers_plus_nan),
         column('MeanDew_PointC', elements=integers_plus_nan),
-        column('MinDew_PointC', elements=integers_plus_nan),
+        column('Min_DewpointC', elements=integers_plus_nan),
         column('Max_Humidity', elements=integers_plus_nan),
         column('Mean_Humidity', elements=integers_plus_nan),
         column('Min_Humidity', elements=integers_plus_nan),
@@ -271,13 +275,16 @@ def check_googletrend_csv(df_dict: Dict[str, pd.DataFrame]) -> None:
 @pytest.mark.props
 @given(create_dataframes())
 @example({'googletrend.csv': pd.DataFrame({'file': ['HB,NI']})})
-@settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
+@settings(deadline=None, suppress_health_check=[HealthCheck.too_slow,
+          HealthCheck.filter_too_much])
 # Add in the setting below to @settings above when needed
 #          verbosity=Verbosity.verbose)
 def test_merge_csvs_properties(input_df_dict: Dict[str, pd.DataFrame]) -> None:
     """Test make_dataset.merge_csvs.  No return value"""
 
     input_dataframe, df_dict = make_dataset.merge_csvs(input_df_dict)
+
+    # assume(df_dict['train.csv']['date'].notnull().any())
 
     # EDIT Consider changing these to check on the final dataframe once it's
     # available
@@ -303,7 +310,44 @@ def test_merge_csvs_properties(input_df_dict: Dict[str, pd.DataFrame]) -> None:
 
     check_googletrend_csv(df_dict)
 
-    assert sorted(input_dataframe.columns) == ['state', 'state_name', 'store']
+    # If state_names.csv is included, appropriate columns should be there
+    if all(['state_names.csv' in df_dict.keys(),
+            len(df_dict['state_names.csv']) > 0]):
+        # This is a separate condition to avoid a Keyerror
+        if any(df_dict['state_names.csv']['state'].notnull()):
+            assert 'state_name' in input_dataframe.columns
+            assert 'store' in input_dataframe.columns
+            assert 'state' in input_dataframe.columns
+
+    # If weather.csv is included, appropriate columns should be there
+    if all(['weather.csv' in df_dict.keys(),
+            len(df_dict['weather.csv']) > 0]):
+        # This is a separate condition to avoid a Keyerror
+        if any(df_dict['weather.csv']['date'].notnull()):
+            for col in ['cloud_cover', 'date', 'dew_point_c', 'events',
+                        'max_gust_speed_km_h', 'max_humidity',
+                        'max_sea_level_pressureh_pa', 'max_temperature_c',
+                        'max_visibility_km', 'max_wind_speed_km_h',
+                        'mean_dew_point_c', 'mean_humidity',
+                        'mean_sea_level_pressureh_pa', 'mean_temperature_c',
+                        'mean_visibility_km', 'mean_wind_speed_km_h',
+                        'min_dew_point_c', 'min_humidity',
+                        'min_sea_level_pressureh_pa', 'min_temperature_c',
+                        'min_visibility_km', 'precipitationmm', 'state',
+                        'wind_dir_degrees']:
+                assert col in input_dataframe.columns
+
+    # Appropriate columns from store.csv should be there
+    for col in ['assortment', 'competition_distance',
+                'competition_open_since_month', 'competition_open_since_year',
+                'promo2', 'promo2_since_week', 'promo2_since_year',
+                'promo_interval', 'store', 'store_type']:
+        assert col in input_dataframe.columns
+
+    # Appropriate columns from train.csv should be there
+    for col in ['customers', 'date', 'day_of_week', 'open', 'promo', 'sales',
+                'school_holiday', 'state_holiday', 'store']:
+        assert col in input_dataframe.columns
 
 
 def test_merge_csvs():

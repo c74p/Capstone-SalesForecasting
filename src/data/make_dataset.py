@@ -151,11 +151,11 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
     - dfs_dict: a dictionary of dataframes keyed by name.
         # EDIT update the 'required' description below if needed
         - The current implementation requires the following:
-            - train.csv, store.csv, and store_states.csv are required
-            - if weather.csv is included, state_names.csv is required
-            - otherwise, googletrend.csv, weather.csv, and state_names.csv are
+            - train.csv, store.csv, and store_states.csv are required.
+            - If weather.csv is included, state_names.csv is required.
+            - Otherwise, googletrend.csv, weather.csv, and state_names.csv are
               optional - but constraint testing will check for them and code
-              will provide a warning to end-user if they're not present
+              will provide a warning to end-user if they're not present.
               # EDIT come back and double-check the above is true
         - The reference implementation has dataframes generated from the
           following files in /data/raw/: 'googletrend.csv', 'state_names.csv',
@@ -164,11 +164,14 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
 
     csv_list = dfs_dict.keys()
 
-    # Fix spelling error in weather dataframe
-    if 'weather.csv' in csv_list and 'Min_VisibilitykM' in \
-            dfs_dict['weather.csv'].columns:
-        dfs_dict['weather.csv'].rename(
+    # Fix spelling errors in weather dataframe
+    if 'weather.csv' in csv_list:
+        if 'Min_VisibilitykM' in dfs_dict['weather.csv'].columns:
+            dfs_dict['weather.csv'].rename(
                 columns={'Min_VisibilitykM': 'Min_VisibilityKm'}, inplace=True)
+        if 'Min_DewpointC' in dfs_dict['weather.csv'].columns:
+            dfs_dict['weather.csv'].rename(
+                columns={'Min_DewpointC': 'MinDew_pointC'}, inplace=True)
 
     # Replace any nans using the replace_nans function
     # Note that as currently written, 'store', 'sales', 'date', or 'week'
@@ -180,18 +183,39 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
         for column in df.columns:
             replace_nans(df[column])
 
-    if 'googletrend.csv' in csv_list:
-        wrangle_googletrend_csv(dfs_dict['googletrend.csv'])
-
     df = dfs_dict['store_states.csv']
 
-    if 'state_names.csv' in csv_list:
-        dfs_dict['store_states.csv']['state'] = \
-            dfs_dict['store_states.csv']['state'].apply('str')
+    df = df.merge(dfs_dict['store.csv'], on='store')
+
+    # Ensure that both dfs have float values for 'store' columns and merge
+    dfs_dict['train.csv']['store'] = \
+        dfs_dict['train.csv']['store'].astype('float')
+    df['store'] = df['store'].astype('float')
+    df = df.merge(dfs_dict['train.csv'], on='store', how='outer')
+
+    if 'state_names.csv' in csv_list and len(dfs_dict['state_names.csv']) > 0:
+        # Ensure that both dfs have str values for 'state' columns and merge
+        df['state'] = df['state'].astype('object')
         dfs_dict['state_names.csv']['state'] = \
-            dfs_dict['state_names.csv']['state'].apply('str')
-        print(dfs_dict['store_states.csv']['state'].dtype)
+            dfs_dict['state_names.csv']['state'].astype('object')
         df = df.merge(dfs_dict['state_names.csv'], on='state')
+
+    if 'weather.csv' in csv_list and len(dfs_dict['weather.csv']) > 0:
+        # Ensure that both dfs have strings for merging-on columns and merge
+        df['state_name'] = df['state_name'].astype('object')
+        dfs_dict['weather.csv']['file'] = \
+            dfs_dict['weather.csv']['file'].astype('object')
+        df = df.merge(dfs_dict['weather.csv'], left_on='state_name',
+                      right_on='file').drop('file', axis='columns')
+
+    if 'googletrend.csv' in csv_list and len(dfs_dict['googletrend.csv']) > 0:
+        wrangle_googletrend_csv(dfs_dict['googletrend.csv'])
+
+        # Ensure that both dfs have strings for merging-on columns and merge
+        # df['date'] = pd.to_datetime(df['date'])
+        # dfs_dict['googletrend.csv']['date'] = \
+        # pd.to_datetime(dfs_dict['googletrend.csv']['date'])
+        # df = df.merge(dfs_dict['googletrend.csv'], on=['date', 'state'])
 
     new_dict = {}
     for k, v in dfs_dict.items():
