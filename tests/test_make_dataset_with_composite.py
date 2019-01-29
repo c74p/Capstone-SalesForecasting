@@ -17,6 +17,8 @@ from src.data import make_dataset # NOQA
 
 # This is the test file for the src/data/make_dataset.py file.
 
+pd.set_option('mode.chained_assignment', 'raise')
+
 
 class test_Import_Csvs(TestCase):
 
@@ -116,9 +118,9 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
     # create the strategy for spelling out a google_week entry (and add nan)
     @composite
     def create_google_weeks(draw, strat: SearchStrategy) -> SearchStrategy:
-        today = draw(dates)
-        idx = (today.weekday() + 1) % 7
-        last_sun = today - datetime.timedelta(idx)
+        day = draw(dates)
+        idx = (day.weekday() + 1) % 7
+        last_sun = day - datetime.timedelta(idx)
         next_sat = last_sun + datetime.timedelta(6)
         return last_sun.strftime('%Y-%m-%d') + ' - ' +\
             next_sat.strftime('%Y-%m-%d')
@@ -249,7 +251,7 @@ def check_googletrend_csv(df_dict: Dict[str, pd.DataFrame]) -> None:
         # 'state' column correctly - everything in 'state' column should be 2
         # chars except for 'HB,NI'
         if 'file' in google.columns and len(google[google.file.notnull()]) > 0:
-            assert all(google[google['state'].str.len() > 2] == 'HB,NI')
+            assert all(google.loc[google['state'].str.len() > 2] == 'HB,NI')
             assert all(google.loc[google.state != 'HB,NI', 'state'].str.len()
                        == 2)
 
@@ -258,11 +260,11 @@ def check_googletrend_csv(df_dict: Dict[str, pd.DataFrame]) -> None:
         # values
         if 'date' in google.columns and len(google[google.date.notnull()]) > 0:
             for st in google.state.unique():
-                if len(google[(google.state == st) &
+                if len(google.loc[(google.state == st) &
                        (google.date.notnull())]) > 0:
                     min = google.loc[google.state == st, 'date'].min()
                     max = google.loc[google.state == st, 'date'].max()
-                    assert len(google[google.state == st]) == \
+                    assert len(google.loc[google.state == st]) == \
                         (max - min)/pd.Timedelta(days=1)
 
 

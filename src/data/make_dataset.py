@@ -4,6 +4,8 @@ import pandas as pd
 import re
 from typing import Any, Dict, List
 
+pd.set_option('mode.chained_assignment', 'raise')  # Chained assmt = Exception
+
 
 # def import_csvs(directory: str, **kwargs: str) -> Dict[str, pd.DataFrame]:
 def import_csvs(
@@ -120,33 +122,48 @@ def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         for column in df.columns:
             replace_nans(df[column])
 
-    # Create column 'state' in googletrend.csv dataframe with state abbrevs
-    # Most abbreviations are the last two characters; one is special ('HB,NI')
     if 'googletrend.csv' in dfs.keys():
         google = dfs['googletrend.csv']
+        # Create column 'state' in googletrend.csv dataframe with state abbrevs
+        # Abbreviations are the last two characters, except for 'HB,NI'
         if 'file' in google.columns and len(google[google.file.notnull()]) > 0:
             cond = lambda series: series.str.endswith('HB,NI') # NOQA
             # Where cond is true, hard-code 'HB,NI'
             google['state'] = google['file'].mask(cond, 'HB,NI', inplace=True)
             # Where cond is NOT true, take the last two (syntax is odd here)
-            google['state'] = google['file'].where(cond,
-                                                   google['file'].str[-2:])
+            google['state'] = \
+                google.loc[google.file.notnull(),
+                           'file'].where(cond, google['file'].str[-2:])
 
-    # For each week in dataframe google, add 7 rows for each of the days in
-    # the week
-    if len(google[google.week.notnull()] > 0):
-        google['week_start'] = pd.to_datetime(google.week.str[:10])
-        start_date = pd.to_datetime(google.week.min()[:10])
-        end_date = pd.to_datetime(google.week.max()[-10:])
-        days = np.arange(start_date, end_date + pd.to_timedelta('1D'),
-                         pd.to_timedelta('1D'))
-        weeks = np.arange(start_date, end_date + pd.to_timedelta('1D'),
-                          pd.to_timedelta('7D'))
-        all_weeks = pd.Series(np.hstack([weeks for i in range(0, 7)]))
-        week_lookup = pd.DataFrame({'date': days, 'Week_Start': all_weeks})
-        google = week_lookup.merge(google, left_on='Week_Start',
-                                   right_on='week_start')
-        google = google.drop(['file', 'Week_Start', 'week'], axis='columns')
+            # For each week in dataframe google, add 7 rows for each of the
+            # days in the week
+            google.dropna(axis='index', inplace=True)
+            if len(google) > 0:  # only includes non-null weeks now
+
+                # Figure out which day each week starts, along with a min and
+                # max week-start-date for the dataframe
+                google.loc[:, 'week_start'] = \
+                        pd.to_datetime(google['week'].str[:10])
+                start_date = pd.to_datetime(google.week.min()[:10])
+                # Note below it's -10: to get the last day of the max week
+                end_date = pd.to_datetime(google.week.max()[-10:])
+
+                # create a new dataframe, week_lookup, listing all days in the
+                # period and their corresponding week
+                days = np.arange(start_date, end_date + pd.to_timedelta('1D'),
+                                 step=pd.to_timedelta('1D'))
+                weeks = np.arange(start_date, end_date + pd.to_timedelta('1D'),
+                                  step=pd.to_timedelta('7D'))
+                all_weeks = pd.Series(np.hstack([weeks for i in range(0, 7)]))
+                week_lookup = pd.DataFrame({'date': days,
+                                            'Week_Start': all_weeks})
+
+                # Re-merge week_lookup back into google so we end up with the
+                # appropriate 7 days for each week
+                google = week_lookup.merge(google, left_on='Week_Start',
+                                           right_on='week_start')
+                google = google.drop(['file', 'Week_Start', 'week'],
+                                     axis='columns')
 
     new_df = {}
     for k, v in dfs.items():
