@@ -7,6 +7,7 @@ from hypothesis.strategies import one_of, sampled_from, SearchStrategy, text
 import numpy as np
 import pandas as pd
 import pytest
+from typing import Dict
 from unittest import TestCase, mock
 
 import sys, os # NOQA
@@ -85,7 +86,7 @@ state_names = ["BadenWuerttemberg", "Bayern", "Berlin", "Brandenburg",
 
 
 @composite
-def create_dataframes(draw):
+def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
     """Generate dataframes for property-based testing."""
 
     # create strategies to be used in creating dataframes
@@ -234,6 +235,37 @@ def test_convert_to_snake_case(t):
     assert new.replace('__', 'XX') == new
 
 
+def check_googletrend_csv(df_dict: Dict[str, pd.DataFrame]) -> None:
+    """Check the transformations done with the file googletrend.csv
+
+    No return value.
+    """
+
+    # Checks on googletrend.csv transformations
+    if 'googletrend.csv' in df_dict.keys():
+        google = df_dict['googletrend.csv']
+
+        # Check that googletrend column 'file' values get translated to a
+        # 'state' column correctly - everything in 'state' column should be 2
+        # chars except for 'HB,NI'
+        if 'file' in google.columns and len(google[google.file.notnull()]) > 0:
+            assert all(google[google['state'].str.len() > 2] == 'HB,NI')
+            assert all(google.loc[google.state != 'HB,NI', 'state'].str.len()
+                       == 2)
+
+        # Check that dates get added correctly - for each state where 'week'
+        # appears in the input df, the output df should have 7 'date' (daily)
+        # values
+        if 'date' in google.columns and len(google[google.date.notnull()]) > 0:
+            for st in google.state.unique():
+                if len(google[(google.state == st) &
+                       (google.date.notnull())]) > 0:
+                    min = google.loc[google.state == st, 'date'].min()
+                    max = google.loc[google.state == st, 'date'].max()
+                    assert len(google[google.state == st]) == \
+                        (max - min)/pd.Timedelta(days=1)
+
+
 @pytest.mark.props
 @given(create_dataframes())
 @example({'googletrend.csv': pd.DataFrame({'file': ['HB,NI']})})
@@ -268,15 +300,7 @@ def test_merge_csvs_properties(dfs):
                     assert df[col].isnull().sum() == 0 or \
                         (df[col].isnull()).all()
 
-    # Check that googletrend column 'file' values get translated to a 'state'
-    # column correctly - everything in 'state' column should be 2 chars except
-    # for 'HB,NI'
-    if 'googletrend.csv' in df_dict.keys():
-        google = df_dict['googletrend.csv']
-        if 'file' in google.columns and len(google[google.file.notnull()]) > 0:
-            assert all(google[google['state'].str.len() > 2] == 'HB,NI')
-            assert all(google.loc[google.state != 'HB,NI', 'state'].str.len()
-                       == 2)
+    check_googletrend_csv(df_dict)
 
 
 def test_merge_csvs():

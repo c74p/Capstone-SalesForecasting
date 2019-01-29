@@ -1,3 +1,4 @@
+import numpy as np
 import os
 import pandas as pd
 import re
@@ -130,6 +131,22 @@ def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
             # Where cond is NOT true, take the last two (syntax is odd here)
             google['state'] = google['file'].where(cond,
                                                    google['file'].str[-2:])
+
+    # For each week in dataframe google, add 7 rows for each of the days in
+    # the week
+    if len(google[google.week.notnull()] > 0):
+        google['week_start'] = pd.to_datetime(google.week.str[:10])
+        start_date = pd.to_datetime(google.week.min()[:10])
+        end_date = pd.to_datetime(google.week.max()[-10:])
+        days = np.arange(start_date, end_date + pd.to_timedelta('1D'),
+                         pd.to_timedelta('1D'))
+        weeks = np.arange(start_date, end_date + pd.to_timedelta('1D'),
+                          pd.to_timedelta('7D'))
+        all_weeks = pd.Series(np.hstack([weeks for i in range(0, 7)]))
+        week_lookup = pd.DataFrame({'date': days, 'Week_Start': all_weeks})
+        google = week_lookup.merge(google, left_on='Week_Start',
+                                   right_on='week_start')
+        google = google.drop(['file', 'Week_Start', 'week'], axis='columns')
 
     new_df = {}
     for k, v in dfs.items():
