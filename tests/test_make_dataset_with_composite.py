@@ -274,14 +274,13 @@ def check_googletrend_csv(df_dict: Dict[str, pd.DataFrame]) -> None:
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow])
 # Add in the setting below to @settings above when needed
 #          verbosity=Verbosity.verbose)
-def test_merge_csvs_properties(dfs):
+def test_merge_csvs_properties(input_df_dict: Dict[str, pd.DataFrame]) -> None:
+    """Test make_dataset.merge_csvs.  No return value"""
 
-    df_dict = make_dataset.merge_csvs(dfs)
+    input_dataframe, df_dict = make_dataset.merge_csvs(input_df_dict)
 
-    # EDIT remove this later if still considered a bad idea
-    # Check on csv and dataframe naming formatting
-    # assert '.csv' not in ''.join(list(df_dict.keys()))
-
+    # EDIT Consider changing these to check on the final dataframe once it's
+    # available
     # Check on column naming
     if 'weather.csv' in df_dict.keys():
         assert 'min_visibilityk_m' not in df_dict['weather.csv'].columns
@@ -303,6 +302,8 @@ def test_merge_csvs_properties(dfs):
                         (df[col].isnull()).all()
 
     check_googletrend_csv(df_dict)
+
+    assert sorted(input_dataframe.columns) == ['state', 'state_name', 'store']
 
 
 def test_merge_csvs():

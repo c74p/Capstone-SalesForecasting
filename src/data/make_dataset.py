@@ -138,21 +138,34 @@ def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
             # appropriate 7 days for each week
             google = week_lookup.merge(google, left_on='Week_Start',
                                        right_on='week_start')
-            google = google.drop(['file', 'Week_Start', 'week'],
-                                 axis='columns')
+            google.drop(['file', 'Week_Start', 'week'], axis='columns',
+                        inplace=True)
 
 
-def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+# EDIT Update the type signature once the function has been changed to only
+# return a dataframe
+def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
+                                                      Dict[str, pd.DataFrame]):
     """Merge the csvs from import_csvs into a single pd.DataFrame.
 
-    - dfs_dict: a dictionary of dataframes keyed by name. The reference
-    implementation has dataframes generated from the following files in
-    /data/raw/: 'googletrend.csv', 'state_names.csv', 'store.csv',
-    'store_states.csv', 'train.csv', 'weather.csv'
+    - dfs_dict: a dictionary of dataframes keyed by name.
+        # EDIT update the 'required' description below if needed
+        - The current implementation requires the following:
+            - train.csv, store.csv, and store_states.csv are required
+            - if weather.csv is included, state_names.csv is required
+            - otherwise, googletrend.csv, weather.csv, and state_names.csv are
+              optional - but constraint testing will check for them and code
+              will provide a warning to end-user if they're not present
+              # EDIT come back and double-check the above is true
+        - The reference implementation has dataframes generated from the
+          following files in /data/raw/: 'googletrend.csv', 'state_names.csv',
+          'store.csv', 'store_states.csv', 'train.csv', 'weather.csv'
     """
 
+    csv_list = dfs_dict.keys()
+
     # Fix spelling error in weather dataframe
-    if 'weather.csv' in dfs_dict.keys() and 'Min_VisibilitykM' in \
+    if 'weather.csv' in csv_list and 'Min_VisibilitykM' in \
             dfs_dict['weather.csv'].columns:
         dfs_dict['weather.csv'].rename(
                 columns={'Min_VisibilitykM': 'Min_VisibilityKm'}, inplace=True)
@@ -167,10 +180,20 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> pd.DataFrame:
         for column in df.columns:
             replace_nans(df[column])
 
-    if 'googletrend.csv' in dfs_dict.keys():
+    if 'googletrend.csv' in csv_list:
         wrangle_googletrend_csv(dfs_dict['googletrend.csv'])
 
-    new_df = {}
+    df = dfs_dict['store_states.csv']
+
+    if 'state_names.csv' in csv_list:
+        dfs_dict['store_states.csv']['state'] = \
+            dfs_dict['store_states.csv']['state'].apply('str')
+        dfs_dict['state_names.csv']['state'] = \
+            dfs_dict['state_names.csv']['state'].apply('str')
+        print(dfs_dict['store_states.csv']['state'].dtype)
+        df = df.merge(dfs_dict['state_names.csv'], on='state')
+
+    new_dict = {}
     for k, v in dfs_dict.items():
-        new_df[k] = v
-    return new_df
+        new_dict[k] = v
+    return (df, new_dict)
