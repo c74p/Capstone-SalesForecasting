@@ -57,8 +57,7 @@ def convert_to_snake_case(string: str) -> str:
 
 
 def replace_nans(column: pd.Series) -> None:
-    """
-    Replace NaNs as appropriate in given columns:
+    """ Replace NaNs as appropriate in given columns:
         - For columns of Floats, replace with the mean
         - For columns of Objects, replace with 'None' unless the column is
           'date' or 'week'
@@ -91,81 +90,87 @@ def replace_nans(column: pd.Series) -> None:
                 column.fillna(int(column.mean()), inplace=True)
 
 
-def merge_csvs(dfs: Dict[str, pd.DataFrame]) -> pd.DataFrame:
+def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
+    """Wrangle the googletrend.csv dataframe:
+        - Change the 'file' column to 'state' with appropriate abbreviations.
+        - Change the 'week' column to 'date', making it day-based rather than
+          week-based for easy merging with the other dataframes.
+
+    This function changes the values in place; no value is returned.
+    """
+
+    if 'file' in google.columns and len(google[google.file.notnull()]) > 0:
+        # Create column 'state' in google dataframe with state abbrevs
+        # Abbreviations are the last two characters, except for 'HB,NI'
+        cond = lambda series: series.str.endswith('HB,NI') # NOQA
+        # Where cond is true, hard-code 'HB,NI'
+        google['state'] = google['file'].mask(cond, 'HB,NI', inplace=True)
+        # Where cond is NOT true, take the last two (FYI, odd syntax here)
+        google['state'] = \
+            google.loc[google.file.notnull(),
+                       'file'].where(cond, google['file'].str[-2:])
+
+        # For each week in dataframe google, add rows for each of the
+        # days in the week, so we can later merge against other day-based
+        # dataframes
+        google.dropna(axis='index', inplace=True)
+        if len(google) > 0:  # only includes non-null weeks now
+
+            # Figure out which day each week starts, along with a min and
+            # max week-start-date for the dataframe
+            google.loc[:, 'week_start'] = \
+                    pd.to_datetime(google['week'].str[:10])
+            start_date = pd.to_datetime(google.week.min()[:10])
+            # Note below it's -10: to get the last day of the max week
+            end_date = pd.to_datetime(google.week.max()[-10:])
+
+            # create a new dataframe, week_lookup, listing all days in the
+            # period and their corresponding week
+            days = np.arange(start_date, end_date + pd.to_timedelta('1D'),
+                             step=pd.to_timedelta('1D'))
+            weeks = np.arange(start_date, end_date + pd.to_timedelta('1D'),
+                              step=pd.to_timedelta('7D'))
+            all_weeks = pd.Series(np.hstack([weeks for i in range(0, 7)]))
+            week_lookup = pd.DataFrame({'date': days,
+                                        'Week_Start': all_weeks})
+
+            # Re-merge week_lookup back into google so we end up with the
+            # appropriate 7 days for each week
+            google = week_lookup.merge(google, left_on='Week_Start',
+                                       right_on='week_start')
+            google = google.drop(['file', 'Week_Start', 'week'],
+                                 axis='columns')
+
+
+def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Merge the csvs from import_csvs into a single pd.DataFrame.
 
-    - dfs: a dictionary of dataframes keyed by name. The reference
+    - dfs_dict: a dictionary of dataframes keyed by name. The reference
     implementation has dataframes generated from the following files in
     /data/raw/: 'googletrend.csv', 'state_names.csv', 'store.csv',
     'store_states.csv', 'train.csv', 'weather.csv'
     """
 
-    # Strip '.csv' from key name if present
-    # keys = list(dfs.keys())
-    # for key in keys:
-    # if key.endswith('.csv'):
-    # dfs[key[:-4]] = dfs.pop(key)
-
     # Fix spelling error in weather dataframe
-    if 'weather.csv' in dfs.keys() and 'Min_VisibilitykM' in \
-            dfs['weather.csv'].columns:
-        dfs['weather.csv'].rename(columns={'Min_VisibilitykM':
-                                           'Min_VisibilityKm'}, inplace=True)
+    if 'weather.csv' in dfs_dict.keys() and 'Min_VisibilitykM' in \
+            dfs_dict['weather.csv'].columns:
+        dfs_dict['weather.csv'].rename(
+                columns={'Min_VisibilitykM': 'Min_VisibilityKm'}, inplace=True)
 
     # Replace any nans using the replace_nans function
     # Note that as currently written, 'store', 'sales', 'date', or 'week'
     # columns don't get nans replaced (see replace_nans docstring for
     # justification)
-    for df in dfs.values():
+    for df in dfs_dict.values():
         col_list = list(df.columns)
         df.columns = pd.Index(map(convert_to_snake_case, col_list))
         for column in df.columns:
             replace_nans(df[column])
 
-    if 'googletrend.csv' in dfs.keys():
-        google = dfs['googletrend.csv']
-        # Create column 'state' in googletrend.csv dataframe with state abbrevs
-        # Abbreviations are the last two characters, except for 'HB,NI'
-        if 'file' in google.columns and len(google[google.file.notnull()]) > 0:
-            cond = lambda series: series.str.endswith('HB,NI') # NOQA
-            # Where cond is true, hard-code 'HB,NI'
-            google['state'] = google['file'].mask(cond, 'HB,NI', inplace=True)
-            # Where cond is NOT true, take the last two (syntax is odd here)
-            google['state'] = \
-                google.loc[google.file.notnull(),
-                           'file'].where(cond, google['file'].str[-2:])
-
-            # For each week in dataframe google, add 7 rows for each of the
-            # days in the week
-            google.dropna(axis='index', inplace=True)
-            if len(google) > 0:  # only includes non-null weeks now
-
-                # Figure out which day each week starts, along with a min and
-                # max week-start-date for the dataframe
-                google.loc[:, 'week_start'] = \
-                        pd.to_datetime(google['week'].str[:10])
-                start_date = pd.to_datetime(google.week.min()[:10])
-                # Note below it's -10: to get the last day of the max week
-                end_date = pd.to_datetime(google.week.max()[-10:])
-
-                # create a new dataframe, week_lookup, listing all days in the
-                # period and their corresponding week
-                days = np.arange(start_date, end_date + pd.to_timedelta('1D'),
-                                 step=pd.to_timedelta('1D'))
-                weeks = np.arange(start_date, end_date + pd.to_timedelta('1D'),
-                                  step=pd.to_timedelta('7D'))
-                all_weeks = pd.Series(np.hstack([weeks for i in range(0, 7)]))
-                week_lookup = pd.DataFrame({'date': days,
-                                            'Week_Start': all_weeks})
-
-                # Re-merge week_lookup back into google so we end up with the
-                # appropriate 7 days for each week
-                google = week_lookup.merge(google, left_on='Week_Start',
-                                           right_on='week_start')
-                google = google.drop(['file', 'Week_Start', 'week'],
-                                     axis='columns')
+    if 'googletrend.csv' in dfs_dict.keys():
+        wrangle_googletrend_csv(dfs_dict['googletrend.csv'])
 
     new_df = {}
-    for k, v in dfs.items():
+    for k, v in dfs_dict.items():
         new_df[k] = v
     return new_df

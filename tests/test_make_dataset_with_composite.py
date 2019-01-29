@@ -17,7 +17,7 @@ from src.data import make_dataset # NOQA
 
 # This is the test file for the src/data/make_dataset.py file.
 
-pd.set_option('mode.chained_assignment', 'raise')
+pd.set_option('mode.chained_assignment', 'raise')  # Chained assmt = Exception
 
 
 class test_Import_Csvs(TestCase):
@@ -256,8 +256,8 @@ def check_googletrend_csv(df_dict: Dict[str, pd.DataFrame]) -> None:
                        == 2)
 
         # Check that dates get added correctly - for each state where 'week'
-        # appears in the input df, the output df should have 7 'date' (daily)
-        # values
+        # appears in the input df, the output df should have daily values for
+        # each day from start to end
         if 'date' in google.columns and len(google[google.date.notnull()]) > 0:
             for st in google.state.unique():
                 if len(google.loc[(google.state == st) &
