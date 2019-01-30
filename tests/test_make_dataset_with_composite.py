@@ -337,6 +337,13 @@ def test_merge_csvs_properties(input_df_dict: Dict[str, pd.DataFrame]) -> None:
                         'wind_dir_degrees']:
                 assert col in input_dataframe.columns
 
+    # If googletrend.csv is included, appropriate columns should be there
+    if all(['googletrend.csv' in df_dict.keys(),
+            df_dict['googletrend.csv'].notnull().sum() > 0]):
+        # This is a separate condition to avoid a Keyerror
+        if any(df_dict['googletrend.csv']['date'].notnull()):
+            assert 'trend' in input_dataframe.columns
+
     # Appropriate columns from store.csv should be there
     for col in ['assortment', 'competition_distance',
                 'competition_open_since_month', 'competition_open_since_year',

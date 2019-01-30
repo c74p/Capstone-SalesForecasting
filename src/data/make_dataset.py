@@ -102,13 +102,16 @@ def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
     if 'file' in google.columns and len(google[google.file.notnull()]) > 0:
         # Create column 'state' in google dataframe with state abbrevs
         # Abbreviations are the last two characters, except for 'HB,NI'
-        cond = lambda series: series.str.endswith('HB,NI') # NOQA
+        google['state'] = google.loc[google.file.notnull(), 'file'].str[-2:]
+        google.loc[google.state == 'NI', 'state'] = 'HB,NI'
+        # cond = lambda series: series.str.endswith('HB,NI') # NOQA
         # Where cond is true, hard-code 'HB,NI'
-        google['state'] = google['file'].mask(cond, 'HB,NI', inplace=True)
+        # google['state'] = google.loc[google.file.notnull(),
+        #                             'file'].mask(cond, 'HB,NI', inplace=True)
         # Where cond is NOT true, take the last two (FYI, odd syntax here)
-        google['state'] = \
-            google.loc[google.file.notnull(),
-                       'file'].where(cond, google['file'].str[-2:])
+        # google['state'] = \
+        #    google.loc[google.file.notnull(),
+        #               'file'].where(cond, google['file'].str[-2:])
 
         # For each week in dataframe google, add rows for each of the
         # days in the week, so we can later merge against other day-based
@@ -126,20 +129,31 @@ def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
 
             # create a new dataframe, week_lookup, listing all days in the
             # period and their corresponding week
-            days = np.arange(start_date, end_date + pd.to_timedelta('1D'),
-                             step=pd.to_timedelta('1D'))
-            weeks = np.arange(start_date, end_date + pd.to_timedelta('1D'),
-                              step=pd.to_timedelta('7D'))
-            all_weeks = pd.Series(np.hstack([weeks for i in range(0, 7)]))
-            week_lookup = pd.DataFrame({'date': days,
-                                        'Week_Start': all_weeks})
+            days = pd.date_range(start_date, end_date + pd.to_timedelta('1D'),
+                             freq='D')
+            week_lookup = pd.DataFrame({'day': days})
+            week_lookup['Week_Start'] = week_lookup['day']
+            # weeks = pd.date_range(start_date, end_date + 
+            # pd.to_timedelta('1D'), freq='W')
+            # all_weeks = sorted(7 * weeks)
+            # all_weeks = pd.Series(sorted(np.hstack([weeks for i in
+            #                                        range(0, 7)])))
+            # week_lookup = pd.DataFrame({'date': days,
+            #                            'Week_Start': all_weeks})
+            # week_lookup['Week_Start'] = \
+            #    week_lookup['Week_Start'].astype('<M8[ns]')
+            # google['week_start'] = \
+            #    google['week_start'].astype('<M8[ns]')
+            print('dtype', week_lookup['Week_Start'].dtype)
+            print(week_lookup.loc[0, 'Week_Start'])
+            print(week_lookup)
 
             # Re-merge week_lookup back into google so we end up with the
             # appropriate 7 days for each week
             google = week_lookup.merge(google, left_on='Week_Start',
-                                       right_on='week_start')
-            google.drop(['file', 'Week_Start', 'week'], axis='columns',
-                        inplace=True)
+                                       right_on='week_start', how='left')
+            # google.drop(['file', 'Week_Start', 'week'], axis='columns',
+            #            inplace=True)
 
 
 # EDIT Update the type signature once the function has been changed to only
@@ -211,11 +225,13 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
     if 'googletrend.csv' in csv_list and len(dfs_dict['googletrend.csv']) > 0:
         wrangle_googletrend_csv(dfs_dict['googletrend.csv'])
 
-        # Ensure that both dfs have strings for merging-on columns and merge
-        # df['date'] = pd.to_datetime(df['date'])
-        # dfs_dict['googletrend.csv']['date'] = \
-        # pd.to_datetime(dfs_dict['googletrend.csv']['date'])
-        # df = df.merge(dfs_dict['googletrend.csv'], on=['date', 'state'])
+        if len(dfs_dict['googletrend.csv']
+               [dfs_dict['googletrend.csv'].file.notnull()]) > 0:
+            # Ensure that both dfs have strings for merging columns and merge
+            df['date'] = pd.to_datetime(df['date'])
+            dfs_dict['googletrend.csv']['date'] = \
+                pd.to_datetime(dfs_dict['googletrend.csv']['date'])
+            df = df.merge(dfs_dict['googletrend.csv'], on=['date', 'state'])
 
     new_dict = {}
     for k, v in dfs_dict.items():
