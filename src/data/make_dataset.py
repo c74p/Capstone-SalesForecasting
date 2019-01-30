@@ -57,30 +57,31 @@ def convert_to_snake_case(string: str) -> str:
 
 
 def replace_nans(column: pd.Series) -> None:
-    """ Replace NaNs as appropriate in given columns:
+    """ Replace NaNs as appropriate in given columns, subject to caveats:
+        - Columns named 'store', 'date', 'week', 'sales', or 'file' are
+          unchanged
         - For columns of Floats, replace with the mean
-        - For columns of Objects, replace with 'None' unless the column is
-          'date' or 'week'
-        - For columns of Ints, replace with the mean coerced to Int, unless the
-          column is 'store'
+        - For columns of Objects, replace with 'None'
+        - For columns of Ints, replace with the mean coerced to Int
     This is consistent with the data-wrangling; the replaced variables are
-    independent variables that aren't crucial.  'store', 'date', and 'week' are
-    crucial variables where a nan couldn't be imputed from the data. 'sales'
-    is the target variable. Rows with nans for 'store', 'sales', 'date' and
-    'week' will be thrown out when the dataframes are merged.
+    independent variables that aren't crucial.  'store', 'date', 'week', and
+    'file' are crucial variables where a nan couldn't be imputed from the data.
+    'sales' is the target variable. Rows with nans for 'store', 'date', 'week',
+    'sales', and 'file' will be thrown out when the dataframes are merged.
 
     This function changes the values in place; no value is returned.
     """
     # Fill NaNs for columns of floats with the mean as above
     # 'store' and 'sales' should not be floats anyway; but if there are any
     # NaNs, pandas will coerce the column dtype to float, thus we check
-    if column.dtype == 'float64' and column.name not in ['store', 'sales'] and\
-            len(column) > 0:
+    if column.dtype == 'float64' and column.name not in ['store', 'sales',
+            'file'] and len(column) > 0:
         column.fillna(column.mean(), inplace=True)
 
     # Fill NaNs for columns of objects with 'None' (except 'date'/'week') as
     # above
-    if column.dtype == 'object' and column.name not in ['date', 'week']:
+    if column.dtype == 'object' and column.name not in \
+            ['date', 'week', 'file']:
         column.fillna('None', inplace=True)
 
     # Fill NaNs for columns of ints with mean coerced to int (except 'store'/
@@ -90,6 +91,7 @@ def replace_nans(column: pd.Series) -> None:
                 column.fillna(int(column.mean()), inplace=True)
 
 
+# EDIT CHANGE THE TYPE DEF AND DOCSTRING IF NEEDED !!!!
 def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
     """Wrangle the googletrend.csv dataframe:
         - Change the 'file' column to 'state' with appropriate abbreviations.
@@ -99,41 +101,48 @@ def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
     This function changes the values in place; no value is returned.
     """
 
-    if 'file' in google.columns and len(google[google.file.notnull()]) > 0:
-        # Create column 'state' in google dataframe with state abbrevs
-        # Abbreviations are the last two characters, except for 'HB,NI'
-        google['state'] = google.loc[google.file.notnull(), 'file'].str[-2:]
-        google.loc[google.state == 'NI', 'state'] = 'HB,NI'
-        # cond = lambda series: series.str.endswith('HB,NI') # NOQA
-        # Where cond is true, hard-code 'HB,NI'
-        # google['state'] = google.loc[google.file.notnull(),
-        #                             'file'].mask(cond, 'HB,NI', inplace=True)
-        # Where cond is NOT true, take the last two (FYI, odd syntax here)
-        # google['state'] = \
-        #    google.loc[google.file.notnull(),
-        #               'file'].where(cond, google['file'].str[-2:])
+    if 'file' in google.columns:
+        google.dropna(axis='index', inplace=True)  # first drop rows w/any null
+        if len(google) > 0:  # only includes non-null rows now
+            # Create column 'state' in google dataframe with state abbrevs
+            # Abbreviations are the last two characters, except for 'HB,NI'
+            # import ipdb; ipdb.set_trace()
+            google['state'] = google.file.str[-2:]
+            google.loc[google.state == 'NI', 'state'] = 'HB,NI'
+            # cond = lambda series: series.str.endswith('HB,NI') # NOQA
+            # Where cond is true, hard-code 'HB,NI'
+            # google['state'] = google.loc[google.file.notnull(),
+            # 'file'].mask(cond, 'HB,NI', inplace=True)
+            # Where cond is NOT true, take the last two (FYI, odd syntax here)
+            # google['state'] = \
+            #    google.loc[google.file.notnull(),
+            #               'file'].where(cond, google['file'].str[-2:])
 
-        # For each week in dataframe google, add rows for each of the
-        # days in the week, so we can later merge against other day-based
-        # dataframes
-        google.dropna(axis='index', inplace=True)
-        if len(google) > 0:  # only includes non-null weeks now
+            # For each week in dataframe google, add rows for each of the
+            # days in the week, so we can later merge against other day-based
+            # dataframes
 
             # Figure out which day each week starts, along with a min and
             # max week-start-date for the dataframe
             google.loc[:, 'week_start'] = \
-                    pd.to_datetime(google['week'].str[:10])
+                pd.to_datetime(google['week'].str[:10])
             start_date = pd.to_datetime(google.week.min()[:10])
             # Note below it's -10: to get the last day of the max week
             end_date = pd.to_datetime(google.week.max()[-10:])
 
+            print(google)
+            print('# of days:', end_date-start_date, ' s ', start_date, ' e ', end_date)
             # create a new dataframe, week_lookup, listing all days in the
             # period and their corresponding week
-            days = pd.date_range(start_date, end_date + pd.to_timedelta('1D'),
-                             freq='D')
-            week_lookup = pd.DataFrame({'day': days})
-            week_lookup['Week_Start'] = week_lookup['day']
-            # weeks = pd.date_range(start_date, end_date + 
+            days = pd.date_range(start_date, end_date, freq='D')
+            week_lookup = pd.DataFrame({'date': days})
+            # week_lookup['Week_Start'] = week_lookup['day']
+            week_lookup['num'] = week_lookup['date'].dt.dayofweek
+            week_lookup['offset'] = (week_lookup['num'] + 1) % 7
+            week_lookup['Week_Start'] = week_lookup['date'] - \
+                pd.to_timedelta(week_lookup['offset'], unit='D')
+            week_lookup.drop(['num', 'offset'], axis='columns', inplace=True)
+            # weeks = pd.date_range(start_date, end_date +
             # pd.to_timedelta('1D'), freq='W')
             # all_weeks = sorted(7 * weeks)
             # all_weeks = pd.Series(sorted(np.hstack([weeks for i in
@@ -146,14 +155,18 @@ def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
             #    google['week_start'].astype('<M8[ns]')
             print('dtype', week_lookup['Week_Start'].dtype)
             print(week_lookup.loc[0, 'Week_Start'])
-            print(week_lookup)
+            # print(week_lookup)
 
             # Re-merge week_lookup back into google so we end up with the
             # appropriate 7 days for each week
-            google = week_lookup.merge(google, left_on='Week_Start',
-                                       right_on='week_start', how='left')
+            new_thing = week_lookup.merge(google, left_on='Week_Start',
+                                       right_on='week_start')
             # google.drop(['file', 'Week_Start', 'week'], axis='columns',
             #            inplace=True)
+            # google = new_thing.copy()
+
+            # EDIT REMOVE THIS LATER IF NEEDED!!!!!
+            return new_thing
 
 
 # EDIT Update the type signature once the function has been changed to only
@@ -165,7 +178,9 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
     - dfs_dict: a dictionary of dataframes keyed by name.
         # EDIT update the 'required' description below if needed
         - The current implementation requires the following:
-            - train.csv, store.csv, and store_states.csv are required.
+            - train.csv, store.csv, and store_states.csv are required to exist,
+              and to have at least one row with no NaN values.
+            - store.csv and store_states.csv must have unique values for store
             - If weather.csv is included, state_names.csv is required.
             - Otherwise, googletrend.csv, weather.csv, and state_names.csv are
               optional - but constraint testing will check for them and code
@@ -188,8 +203,8 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
                 columns={'Min_DewpointC': 'MinDew_pointC'}, inplace=True)
 
     # Replace any nans using the replace_nans function
-    # Note that as currently written, 'store', 'sales', 'date', or 'week'
-    # columns don't get nans replaced (see replace_nans docstring for
+    # Note that as currently written, 'store', 'sales', 'date', 'week', or
+    # 'file' columns don't get nans replaced (see replace_nans docstring for
     # justification)
     for df in dfs_dict.values():
         col_list = list(df.columns)
@@ -206,6 +221,7 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
         dfs_dict['train.csv']['store'].astype('float')
     df['store'] = df['store'].astype('float')
     df = df.merge(dfs_dict['train.csv'], on='store', how='outer')
+    # print(df.date)
 
     if 'state_names.csv' in csv_list and len(dfs_dict['state_names.csv']) > 0:
         # Ensure that both dfs have str values for 'state' columns and merge
@@ -223,10 +239,15 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
                       right_on='file').drop('file', axis='columns')
 
     if 'googletrend.csv' in csv_list and len(dfs_dict['googletrend.csv']) > 0:
-        wrangle_googletrend_csv(dfs_dict['googletrend.csv'])
+        # print('len of google csv', len(dfs_dict['googletrend.csv']))
+        dfs_dict['googletrend.csv'] = \
+            wrangle_googletrend_csv(dfs_dict['googletrend.csv'])
 
-        if len(dfs_dict['googletrend.csv']
-               [dfs_dict['googletrend.csv'].file.notnull()]) > 0:
+        # print(type(dfs_dict['googletrend.csv']))
+
+        # if type(dfs_dict['googletrend.csv']) != "<class 'NoneType'>" and \
+        if dfs_dict['googletrend.csv'] is not None and \
+                dfs_dict['googletrend.csv'].notnull().any().any():
             # Ensure that both dfs have strings for merging columns and merge
             df['date'] = pd.to_datetime(df['date'])
             dfs_dict['googletrend.csv']['date'] = \

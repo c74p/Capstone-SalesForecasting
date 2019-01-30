@@ -1,5 +1,6 @@
 import datetime
-from hypothesis import assume, example, given, HealthCheck, settings
+from hypothesis import assume, example, given, HealthCheck, note, settings
+from hypothesis import unlimited
 from hypothesis import Verbosity # NOQA
 from hypothesis.extra.pandas import column, data_frames, range_indexes
 from hypothesis.strategies import composite, datetimes, floats, integers, just
@@ -143,8 +144,10 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
     state_names_df = pd.DataFrame({'StateName': state_names,
                                   'State': state_abbreviations})
 
+    # We'll create a stores dataframe by appending some rows with possibly-NaN
+    # values to some rows with only non-NaN values
     # Note index gives min and max sizes for this dataframe (not empty)
-    stores_df = draw(data_frames(columns=[
+    stores_maybe_NaN_df = draw(data_frames(columns=[
         column('Store', elements=stores_plus_nan, unique=True),
         column('StoreType',
                elements=sampled_from(['a', 'b', 'c', 'd', np.NaN])),
@@ -165,13 +168,65 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
                                       'Mar,Jun,Sept,Dec', np.NaN]))],
         index=range_indexes(min_size=10, max_size=1000)))
 
-    store_states_df = draw(data_frames([
+    stores_no_NaN_df = draw(data_frames(columns=[
+        column('Store', elements=stores, unique=True),
+        column('StoreType',
+               elements=sampled_from(['a', 'b', 'c', 'd'])),
+        column('Assortment', elements=sampled_from(['a', 'b', 'c'])),
+        column('CompetitionDistance',
+               elements=floats(allow_infinity=False, allow_nan=False)),
+        column('CompetitionOpenSinceMonth',
+               elements=floats(allow_infinity=False, allow_nan=False)),
+        column('CompetitionOpenSinceYear',
+               elements=floats(allow_infinity=False, allow_nan=False)),
+        column('Promo2', elements=sampled_from([0, 1])),
+        column('Promo2SinceWeek',
+               elements=floats(allow_infinity=False, allow_nan=False)),
+        column('Promo2SinceYear',
+               elements=floats(allow_infinity=False, allow_nan=False)),
+        column('PromoInterval',
+               elements=sampled_from(['Feb,May,Aug,Nov', 'Jan,Apr,Jul,Oct',
+                                      'Mar,Jun,Sept,Dec']))],
+        index=range_indexes(min_size=1, max_size=1000)))
+
+    # Check for any overlap between stores_maybe_NaN_df and stores_no_NaN_df
+    # in the 'Store' column, since we want stores to be unique in this df
+    stores_overlap = \
+        set(stores_maybe_NaN_df.Store.unique()) & \
+        set(stores_no_NaN_df.Store.unique())
+    for store in stores_overlap:
+        stores_maybe_NaN_df = \
+            stores_maybe_NaN_df.loc[stores_maybe_NaN_df.Store == store]
+    stores_df = stores_no_NaN_df.append(stores_maybe_NaN_df, sort=None)
+
+    # We'll create a store_states dataframe by appending some rows with
+    # possibly-NaN values to some rows with only non-NaN values
+    store_states_maybe_NaN_df = draw(data_frames([
         column('Store', elements=stores_plus_nan, unique=True),
         column('State', elements=states_plus_nan)
         ]))
 
+    store_states_no_NaN_df = draw(data_frames([
+        column('Store', elements=stores, unique=True),
+        column('State', elements=states)
+        ]))
+
+    # Check for any overlap between store_states_maybe_NaN_df and
+    # store_states_no_NaN_df in the 'Store' column, since we want stores to be
+    # unique in this df
+    store_states_overlap = \
+        set(store_states_maybe_NaN_df.Store.unique()) & \
+        set(store_states_no_NaN_df.Store.unique())
+    for store in store_states_overlap:
+        store_states_maybe_NaN_df = \
+            store_states_maybe_NaN_df[store_states_maybe_NaN_df.Store == store]
+    store_states_df = store_states_no_NaN_df.append(
+        store_states_maybe_NaN_df, sort=None)
+
+    # We'll create a train dataframe by appending some rows with possibly-NaN
+    # values to some rows with only non-NaN values
     # Note index gives min and max sizes for this dataframe (not empty)
-    train_df = draw(data_frames(columns=[
+    train_maybe_NaN_df = draw(data_frames(columns=[
         column('Store', elements=stores_plus_nan),
         column('DayOfWeek', elements=integers_plus_nan),
         column('Date', elements=dates_plus_nan),
@@ -184,6 +239,27 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
         column('SchoolHoliday', elements=sampled_from([0, 1, np.NaN]))],
         index=range_indexes(min_size=10, max_size=10000)
         ))
+
+    train_no_NaN_df = draw(data_frames(columns=[
+        column('Store', elements=stores),
+        column('DayOfWeek', elements=integers()),
+        column('Date', elements=dates),
+        column('Sales', elements=integers()),
+        column('Customers', elements=integers()),
+        column('Open', elements=sampled_from([0, 1])),
+        column('Promo', elements=sampled_from([0, 1])),
+        column('StateHoliday',
+               elements=sampled_from(['0', 'a', 'b', 'c'])),
+        column('SchoolHoliday', elements=sampled_from([0, 1]))],
+        index=range_indexes(min_size=1, max_size=10000)
+        ))
+
+    train_df = train_no_NaN_df.append(train_maybe_NaN_df, sort=None)
+
+    store_states_df = draw(data_frames([
+        column('Store', elements=stores_plus_nan, unique=True),
+        column('State', elements=states_plus_nan)
+        ]))
 
     # Note that there are a lot of integer-valued columns in here; that's what
     # came out of the original dataframe. May need to revisit whether it's
@@ -248,7 +324,8 @@ def check_googletrend_csv(df_dict: Dict[str, pd.DataFrame]) -> None:
     """
 
     # Checks on googletrend.csv transformations
-    if 'googletrend.csv' in df_dict.keys():
+    if 'googletrend.csv' in df_dict.keys() and \
+            df_dict['googletrend.csv'] is not None:
         google = df_dict['googletrend.csv']
 
         # Check that googletrend column 'file' values get translated to a
@@ -264,19 +341,21 @@ def check_googletrend_csv(df_dict: Dict[str, pd.DataFrame]) -> None:
         # each day from start to end
         if 'date' in google.columns and len(google[google.date.notnull()]) > 0:
             for st in google.state.unique():
-                if len(google.loc[(google.state == st) &
-                       (google.date.notnull())]) > 0:
-                    min = google.loc[google.state == st, 'date'].min()
-                    max = google.loc[google.state == st, 'date'].max()
-                    assert len(google.loc[google.state == st]) == \
-                        (max - min)/pd.Timedelta(days=1)
+                if len(google.loc[(google.state == st)]) > 0:
+                    weeks = google.loc[google.state == st,
+                                       'week_start'].unique()
+                    days = len(google.loc[google.state == st])
+                    # min = google.loc[google.state == st, 'date'].min()
+                    # max = google.loc[google.state == st, 'date'].max()
+                    assert days % len(weeks) == 0
 
 
 @pytest.mark.props
 @given(create_dataframes())
 @example({'googletrend.csv': pd.DataFrame({'file': ['HB,NI']})})
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow,
-          HealthCheck.filter_too_much])
+          HealthCheck.filter_too_much, HealthCheck.hung_test],
+          timeout=unlimited)
 # Add in the setting below to @settings above when needed
 #          verbosity=Verbosity.verbose)
 def test_merge_csvs_properties(input_df_dict: Dict[str, pd.DataFrame]) -> None:
@@ -284,7 +363,7 @@ def test_merge_csvs_properties(input_df_dict: Dict[str, pd.DataFrame]) -> None:
 
     input_dataframe, df_dict = make_dataset.merge_csvs(input_df_dict)
 
-    # assume(df_dict['train.csv']['date'].notnull().any())
+    assume(df_dict['train.csv']['date'].notnull().any())
 
     # EDIT Consider changing these to check on the final dataframe once it's
     # available
@@ -302,17 +381,18 @@ def test_merge_csvs_properties(input_df_dict: Dict[str, pd.DataFrame]) -> None:
     # change the meaning of the data, so those remain NaNs and will
     # be removed in the merge later
     for name, df in df_dict.items():
-        if len(df) > 0 and df.isnull().any().any():
+        if df is not None and len(df) > 0 and df.isnull().any().any():
             for col in df.columns:
-                if col not in ['store', 'sales', 'date', 'week']:
+                if col not in ['store', 'sales', 'date', 'week', 'file']:
                     assert df[col].isnull().sum() == 0 or \
                         (df[col].isnull()).all()
 
     check_googletrend_csv(df_dict)
 
     # If state_names.csv is included, appropriate columns should be there
-    if all(['state_names.csv' in df_dict.keys(),
-            len(df_dict['state_names.csv']) > 0]):
+    if 'state_names.csv' in df_dict.keys() and \
+            df_dict['state_names.csv'] is not None and\
+            len(df_dict['state_names.csv']) > 0:
         # This is a separate condition to avoid a Keyerror
         if any(df_dict['state_names.csv']['state'].notnull()):
             assert 'state_name' in input_dataframe.columns
@@ -320,8 +400,9 @@ def test_merge_csvs_properties(input_df_dict: Dict[str, pd.DataFrame]) -> None:
             assert 'state' in input_dataframe.columns
 
     # If weather.csv is included, appropriate columns should be there
-    if all(['weather.csv' in df_dict.keys(),
-            len(df_dict['weather.csv']) > 0]):
+    if 'weather.csv' in df_dict.keys() and \
+            df_dict['weather.csv'] is not None and \
+            len(df_dict['weather.csv']) > 0:
         # This is a separate condition to avoid a Keyerror
         if any(df_dict['weather.csv']['date'].notnull()):
             for col in ['cloud_cover', 'date', 'dew_point_c', 'events',
@@ -338,8 +419,9 @@ def test_merge_csvs_properties(input_df_dict: Dict[str, pd.DataFrame]) -> None:
                 assert col in input_dataframe.columns
 
     # If googletrend.csv is included, appropriate columns should be there
-    if all(['googletrend.csv' in df_dict.keys(),
-            df_dict['googletrend.csv'].notnull().sum() > 0]):
+    if 'googletrend.csv' in df_dict.keys() and \
+            df_dict['googletrend.csv'] is not None and \
+            any(df_dict['googletrend.csv'].notnull().sum() > 0):
         # This is a separate condition to avoid a Keyerror
         if any(df_dict['googletrend.csv']['date'].notnull()):
             assert 'trend' in input_dataframe.columns
@@ -356,6 +438,7 @@ def test_merge_csvs_properties(input_df_dict: Dict[str, pd.DataFrame]) -> None:
                 'school_holiday', 'state_holiday', 'store']:
         assert col in input_dataframe.columns
 
+    note('train date printout:' + str(df_dict['train.csv'].date))
 
 def test_merge_csvs():
     pass
