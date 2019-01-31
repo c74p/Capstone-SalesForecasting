@@ -168,11 +168,11 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
     state_names_df = pd.DataFrame({'StateName': state_names,
                                   'State': state_abbreviations})
 
-    # We'll create a stores dataframe by appending some rows with possibly-NaN
-    # values to some rows with only non-NaN values
+    # We'll create a stores dataframe allowing non-unique values for store,
+    # then remove any overlaps - in the hope that it's easier to generate
     # Note index gives min and max sizes for this dataframe (not empty)
-    stores_maybe_NaN_df = draw(data_frames(columns=[
-        column('Store', elements=stores_plus_nan, unique=True),
+    stores_df = draw(data_frames(columns=[
+        column('Store', elements=stores),
         column('StoreType',
                elements=sampled_from(['a', 'b', 'c', 'd', np.NaN])),
         column('Assortment', elements=sampled_from(['a', 'b', 'c', np.NaN])),
@@ -192,72 +192,35 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
                                       'Mar,Jun,Sept,Dec', np.NaN]))],
         index=range_indexes(min_size=10, max_size=1000)))
 
-    stores_no_NaN_df = draw(data_frames(columns=[
-        column('Store', elements=stores, unique=True),
-        column('StoreType',
-               elements=sampled_from(['a', 'b', 'c', 'd'])),
-        column('Assortment', elements=sampled_from(['a', 'b', 'c'])),
-        column('CompetitionDistance',
-               elements=floats(allow_infinity=False, allow_nan=False)),
-        column('CompetitionOpenSinceMonth',
-               elements=floats(allow_infinity=False, allow_nan=False)),
-        column('CompetitionOpenSinceYear',
-               elements=floats(allow_infinity=False, allow_nan=False)),
-        column('Promo2', elements=sampled_from([0, 1])),
-        column('Promo2SinceWeek',
-               elements=floats(allow_infinity=False, allow_nan=False)),
-        column('Promo2SinceYear',
-               elements=floats(allow_infinity=False, allow_nan=False)),
-        column('PromoInterval',
-               elements=sampled_from(['Feb,May,Aug,Nov', 'Jan,Apr,Jul,Oct',
-                                      'Mar,Jun,Sept,Dec']))],
-        index=range_indexes(min_size=1, max_size=1000)))
+    # Check for any overlap in the 'Store' column, since we want stores to be
+    # unique in this df
+    stores_col = list(stores_df.Store)
+    remove_duplicate_indices = \
+        list({x for x in stores_col if stores_col.count(x) > 1})
+    for store in remove_duplicate_indices:
+        stores_df = stores_df[stores_df.Store != store]
 
-    # Check for any overlap between stores_maybe_NaN_df and stores_no_NaN_df
-    # in the 'Store' column, since we want stores to be unique in this df
-    stores_overlap = \
-        set(stores_maybe_NaN_df.Store.unique()) & \
-        set(stores_no_NaN_df.Store.unique())
-    for store in stores_overlap:
-        stores_maybe_NaN_df = \
-            stores_maybe_NaN_df.loc[stores_maybe_NaN_df.Store == store]
-    stores_df = stores_no_NaN_df.append(stores_maybe_NaN_df, sort=None,
-        ignore_index=True)
-
-    # We'll create a store_states dataframe by appending some rows with
-    # possibly-NaN values to some rows with only non-NaN values
-    store_states_maybe_NaN_df = draw(data_frames([
-        column('Store', elements=stores_plus_nan, unique=True),
-        column('State', elements=states_plus_nan)
-        ]))
-
-    store_states_no_NaN_df = draw(data_frames(columns=[
-        column('Store', elements=stores, unique=True),
-        column('State', elements=states)],
+    # We'll create a store_states dataframe allowing non-unique values for
+    # store, then remove any overlaps - in the hope that it's easier to
+    # create. Note index gives min and max sizes for this dataframe (not empty)
+    store_states_df = draw(data_frames(columns=[
+        column('Store', elements=stores),
+        column('State', elements=states_plus_nan)],
         index=range_indexes(min_size=10, max_size=500)))
 
-    # Check for any overlap between store_states_maybe_NaN_df and
-    # store_states_no_NaN_df in the 'Store' column, since we want stores to be
+    # Check for any overlap in the 'Store' column, since we want stores to be
     # unique in this df
-    store_states_overlap = \
-        set(store_states_maybe_NaN_df.Store.unique()) & \
-        set(store_states_no_NaN_df.Store.unique())
-    for store in store_states_overlap:
-        store_states_maybe_NaN_df = \
-            store_states_maybe_NaN_df[store_states_maybe_NaN_df.Store == store]
-    store_states_df = store_states_no_NaN_df.append(
-        store_states_maybe_NaN_df, sort=None, ignore_index=True)
+    stores_col = list(store_states_df.Store)
+    remove_duplicate_indices = \
+        list({x for x in stores_col if stores_col.count(x) > 1})
+    for store in remove_duplicate_indices:
+        store_states_df = store_states_df[store_states_df.Store != store]
 
-    # store_states_df = draw(data_frames([
-    #    column('Store', elements=stores_plus_nan, unique=True),
-    #    column('State', elements=states_plus_nan)
-    #    ]))
-
-    # We'll create a train dataframe by appending some rows with possibly-NaN
-    # values to some rows with only non-NaN values
-    # Note index gives min and max sizes for this dataframe (not empty)
-    train_maybe_NaN_df = draw(data_frames(columns=[
-        column('Store', elements=stores_plus_nan),
+    # We'll create a train dataframe allowing non-unique values for
+    # store, then remove any overlaps - in the hope that it's easier to
+    # create. Note index gives min and max sizes for this dataframe (not empty)
+    train_df = draw(data_frames(columns=[
+        column('Store', elements=stores),
         column('DayOfWeek', elements=integers_plus_nan),
         column('Date', elements=dates_plus_nan),
         column('Sales', elements=integers_plus_nan),
@@ -270,28 +233,11 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
         index=range_indexes(min_size=10, max_size=10000)
         ))
 
-    train_no_NaN_df = draw(data_frames(columns=[
-        column('Store', elements=stores),
-        column('DayOfWeek', elements=integers()),
-        column('Date', elements=dates),
-        column('Sales', elements=integers()),
-        column('Customers', elements=integers()),
-        column('Open', elements=sampled_from([0, 1])),
-        column('Promo', elements=sampled_from([0, 1])),
-        column('StateHoliday',
-               elements=sampled_from(['0', 'a', 'b', 'c'])),
-        column('SchoolHoliday', elements=sampled_from([0, 1]))],
-        index=range_indexes(min_size=1, max_size=10000)
-        ))
-
-    train_df = train_no_NaN_df.append(train_maybe_NaN_df, sort=None,
-        ignore_index=True)
-
     # Note that there are a lot of integer-valued columns in here; that's what
     # came out of the original dataframe. May need to revisit whether it's
     # better to code these as floats from the beginning.
     weather_df = draw(data_frames([
-        column('file', elements=sampled_from([np.NaN] + state_names)),
+        column('file', elements=sampled_from(state_names)),
         column('date', elements=dates_plus_nan),
         column('Max_TemperatureC', elements=integers_plus_nan),
         column('Mean_TemperatureC', elements=integers_plus_nan),
@@ -327,8 +273,8 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
                 'Rain-Hail-Thunderstorm', 'Fog-Rain-Snow-Hail',
                 'Fog-Thunderstorm', 'Rain-Snow-Thunderstorm',
                 'Fog-Rain-Hail-Thunderstorm', 'Snow-Hail'])),
-        column('WindDirDegrees', elements=integers_plus_nan),
-        ]))
+        column('WindDirDegrees', elements=integers_plus_nan)],
+        index=range_indexes(min_size=10, max_size=100)))
 
     return {'googletrend.csv': google_df, 'state_names.csv': state_names_df,
             'store_states.csv': store_states_df, 'store.csv': stores_df,
@@ -380,8 +326,8 @@ def check_googletrend_csv(df_dict: Dict[str, pd.DataFrame]) -> None:
 @given(create_dataframes())
 @example({'googletrend.csv': pd.DataFrame({'file': ['HB,NI']})})
 @settings(deadline=None, suppress_health_check=[HealthCheck.too_slow,
-          HealthCheck.filter_too_much, HealthCheck.hung_test],
-          timeout=unlimited)
+          HealthCheck.filter_too_much, HealthCheck.hung_test,
+          HealthCheck.data_too_large], timeout=unlimited)
 # Add in the setting below to @settings above when needed
 #          verbosity=Verbosity.verbose)
 def test_merge_csvs_properties(input_df_dict: Dict[str, pd.DataFrame]) -> None:
