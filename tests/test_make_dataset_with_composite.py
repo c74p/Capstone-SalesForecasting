@@ -4,7 +4,7 @@ from hypothesis import unlimited
 from hypothesis import Verbosity # NOQA
 from hypothesis.extra.pandas import column, data_frames, range_indexes
 from hypothesis.strategies import composite, floats, integers, just
-from hypothesis.strategies import one_of, sampled_from, SearchStrategy, text
+from hypothesis.strategies import sampled_from, SearchStrategy, text
 import numpy as np
 import pandas as pd
 import pytest
@@ -94,16 +94,10 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
 
     # create strategies to be used in creating dataframes
 
-    # define a 'plus_nan' strategy wrapper to explicitly include np.NaN
-    @composite
-    def plus_nan(draw, strat: SearchStrategy) -> SearchStrategy:
-        return draw(one_of(just(np.NaN), strat))
-
     # Create a strategy to generate store numbers
     # Note that in order to create well-formed dataframes, we'll limit the
     # number of choices to much lower than the real number
     stores = integers(min_value=0, max_value=500)
-    stores_plus_nan = plus_nan(stores)
 
     # Note that in order to create well-formed dataframes, here we'll assign
     # each store to a state - meaning if we want to generate a state, we'll
@@ -117,7 +111,6 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
         return state_abbreviations[state_num]
 
     states = state_strat()
-    states_plus_nan = plus_nan(states)
 
     # Note that in order to create well-formed dataframes, here we'll assign
     # each store to a date - meaning if we want to generate a date, we'll
@@ -131,38 +124,39 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
         return date_range[date_num]
 
     dates = date_strat()
-    dates_plus_nan = plus_nan(dates)
-
-    integers_plus_nan = plus_nan(integers())
 
     # Take the 'states' strategy and prepend 'Rossmann_DE' to what it gives you
     # Then add in NaN as a possibility for good measure
     google_files = states.flatmap(lambda state: just('Rossmann_DE_' + state))
-    google_files_plus_nan = plus_nan(google_files)
 
     # create the strategy for spelling out a google_week entry (and add nan)
     @composite
-    def create_google_weeks(draw, strat: SearchStrategy) -> SearchStrategy:
+    def create_google_weeks(draw) -> SearchStrategy:
         day = draw(dates)
         idx = (day.weekday() + 1) % 7
         last_sun = day - datetime.timedelta(idx)
         next_sat = last_sun + datetime.timedelta(6)
         return last_sun.strftime('%Y-%m-%d') + ' - ' +\
             next_sat.strftime('%Y-%m-%d')
-    google_weeks_plus_nan = plus_nan(create_google_weeks(dates))
+    google_weeks = create_google_weeks()
 
     # Create dataframes from the strategies above
-    # Note that each column has one of three strategies that include possible
-    # nan values:
-    # 1) It explicitly includes the 'plus_nan' wrapper
-    # 2) It's sampled_from a list that explicitly includes nan
-    # 3) It uses the 'floats' strategy, with allow_nan=True.  (The 'floats'
-    #    strategy implicitly allows nans but PEP 20 dude)
+    # We'll create dataframes with all non-NaN values, then add NaNs to rows
+    # after the fact
     google_df = draw(data_frames([
-        column('file', elements=google_files_plus_nan),
-        column('week', elements=google_weeks_plus_nan),
+        column('file', elements=google_files),
+        column('week', elements=google_weeks),
         column('trend',
-               elements=plus_nan(integers(min_value=0, max_value=100)))]))
+               elements=(integers(min_value=0, max_value=100)))],
+        index=range_indexes(min_size=10, max_size=100)))
+
+    # Add the nans
+    rows = len(google_df)
+    google_df.loc[rows] = [np.NaN, np.NaN, np.NaN]
+    google_df.loc[rows+1] = [np.NaN, '2014-01-05 - 2014-01-11', 42]
+    google_df.loc[rows+2] = ['Rossmann_DE_BE', np.NaN, 42]
+    google_df.loc[rows+3] = \
+        ['Rossmann_DE_BE', '2014-01-05 - 2014-01-11', np.NaN]
 
     # Since this file is crucial to structuring the merged pdf, it's hard-coded
     state_names_df = pd.DataFrame({'StateName': state_names,
@@ -172,100 +166,127 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
     # then remove any overlaps - in the hope that it's easier to generate
     # Note index gives min and max sizes for this dataframe (not empty)
     stores_df = draw(data_frames(columns=[
-        column('Store', elements=stores),
+        column('Store', elements=stores, unique=True),
         column('StoreType',
-               elements=sampled_from(['a', 'b', 'c', 'd', np.NaN])),
-        column('Assortment', elements=sampled_from(['a', 'b', 'c', np.NaN])),
+               elements=sampled_from(['a', 'b', 'c', 'd'])),
+        column('Assortment', elements=sampled_from(['a', 'b', 'c'])),
         column('CompetitionDistance',
-               elements=floats(allow_infinity=False, allow_nan=True)),
+               elements=floats(allow_infinity=False, allow_nan=False)),
         column('CompetitionOpenSinceMonth',
-               elements=floats(allow_infinity=False, allow_nan=True)),
+               elements=floats(allow_infinity=False, allow_nan=False)),
         column('CompetitionOpenSinceYear',
-               elements=floats(allow_infinity=False, allow_nan=True)),
-        column('Promo2', elements=sampled_from([0, 1, np.NaN])),
+               elements=floats(allow_infinity=False, allow_nan=False)),
+        column('Promo2', elements=sampled_from([0, 1])),
         column('Promo2SinceWeek',
-               elements=floats(allow_infinity=False, allow_nan=True)),
+               elements=floats(allow_infinity=False, allow_nan=False)),
         column('Promo2SinceYear',
-               elements=floats(allow_infinity=False, allow_nan=True)),
+               elements=floats(allow_infinity=False, allow_nan=False)),
         column('PromoInterval',
                elements=sampled_from(['Feb,May,Aug,Nov', 'Jan,Apr,Jul,Oct',
-                                      'Mar,Jun,Sept,Dec', np.NaN]))],
+                                      'Mar,Jun,Sept,Dec']))],
         index=range_indexes(min_size=10, max_size=1000)))
 
     # Check for any overlap in the 'Store' column, since we want stores to be
     # unique in this df
-    stores_col = list(stores_df.Store)
-    remove_duplicate_indices = \
-        list({x for x in stores_col if stores_col.count(x) > 1})
-    for store in remove_duplicate_indices:
-        stores_df = stores_df[stores_df.Store != store]
+    # stores_col = list(stores_df.Store)
+    # remove_duplicate_indices = \
+    #    list({x for x in stores_col if stores_col.count(x) > 1})
+    # for store in remove_duplicate_indices:
+    #    stores_df = stores_df[stores_df.Store != store]
+
+    # Add the nans
+    rows = len(stores_df)
+    len_cols = len(stores_df.columns)
+    ref_row = [42, 'b', 'b', 42, 2, 2013, 1, 42, 2013, 'Feb,May,Aug,Nov']
+    for col_num in range(len_cols):
+        new_row = ref_row[:col_num] + [np.NaN] + ref_row[col_num + 1:]
+        stores_df.loc[rows+col_num] = new_row
+    stores_df.loc[rows+len_cols] = [np.NaN for i in range(len_cols)]
 
     # We'll create a store_states dataframe allowing non-unique values for
     # store, then remove any overlaps - in the hope that it's easier to
     # create. Note index gives min and max sizes for this dataframe (not empty)
     store_states_df = draw(data_frames(columns=[
-        column('Store', elements=stores),
-        column('State', elements=states_plus_nan)],
+        column('Store', elements=stores, unique=True),
+        column('State', elements=states)],
         index=range_indexes(min_size=10, max_size=500)))
 
     # Check for any overlap in the 'Store' column, since we want stores to be
     # unique in this df
-    stores_col = list(store_states_df.Store)
-    remove_duplicate_indices = \
-        list({x for x in stores_col if stores_col.count(x) > 1})
-    for store in remove_duplicate_indices:
-        store_states_df = store_states_df[store_states_df.Store != store]
+    # stores_col = list(store_states_df.Store)
+    # remove_duplicate_indices = \
+    # list({x for x in stores_col if stores_col.count(x) > 1})
+    # for store in remove_duplicate_indices:
+    # store_states_df = store_states_df[store_states_df.Store != store]
+
+    # Add the nans
+    rows = len(store_states_df)
+    len_cols = len(store_states_df.columns)
+    ref_row = [42, 'BE']
+    for col_num in range(len_cols):
+        new_row = ref_row[:col_num] + [np.NaN] + ref_row[col_num + 1:]
+        store_states_df.loc[rows+col_num] = new_row
+    store_states_df.loc[rows+len_cols] = [np.NaN for i in range(len_cols)]
 
     # We'll create a train dataframe allowing non-unique values for
     # store, then remove any overlaps - in the hope that it's easier to
     # create. Note index gives min and max sizes for this dataframe (not empty)
     train_df = draw(data_frames(columns=[
-        column('Store', elements=stores),
-        column('DayOfWeek', elements=integers_plus_nan),
-        column('Date', elements=dates_plus_nan),
-        column('Sales', elements=integers_plus_nan),
-        column('Customers', elements=integers_plus_nan),
-        column('Open', elements=sampled_from([0, 1, np.NaN])),
-        column('Promo', elements=sampled_from([0, 1, np.NaN])),
+        column('Store', elements=stores, unique=True),
+        column('DayOfWeek', elements=integers()),
+        column('Date', elements=dates),
+        column('Sales', elements=integers()),
+        column('Customers', elements=integers()),
+        column('Open', elements=sampled_from([0, 1])),
+        column('Promo', elements=sampled_from([0, 1])),
         column('StateHoliday',
-               elements=sampled_from(['0', 'a', 'b', 'c', np.NaN])),
-        column('SchoolHoliday', elements=sampled_from([0, 1, np.NaN]))],
-        index=range_indexes(min_size=10, max_size=10000)
+               elements=sampled_from(['0', 'a', 'b', 'c'])),
+        column('SchoolHoliday', elements=sampled_from([0, 1]))],
+        index=range_indexes(min_size=10, max_size=500)
         ))
+
+    # Add the nans
+    rows = len(train_df)
+    len_cols = len(train_df.columns)
+    ref_row = [42, 1, '2013-01-06', 42, 42, 1, 1, 0, 0]
+    for col_num in range(len_cols):
+        new_row = ref_row[:col_num] + [np.NaN] + ref_row[col_num + 1:]
+        train_df.loc[rows+col_num] = new_row
+    train_df.loc[rows+len_cols] = [np.NaN for i in range(len_cols)]
 
     # Note that there are a lot of integer-valued columns in here; that's what
     # came out of the original dataframe. May need to revisit whether it's
     # better to code these as floats from the beginning.
     weather_df = draw(data_frames([
         column('file', elements=sampled_from(state_names)),
-        column('date', elements=dates_plus_nan),
-        column('Max_TemperatureC', elements=integers_plus_nan),
-        column('Mean_TemperatureC', elements=integers_plus_nan),
-        column('Min_TemperatureC', elements=integers_plus_nan),
-        column('Dew_PointC', elements=integers_plus_nan),
-        column('MeanDew_PointC', elements=integers_plus_nan),
-        column('Min_DewpointC', elements=integers_plus_nan),
-        column('Max_Humidity', elements=integers_plus_nan),
-        column('Mean_Humidity', elements=integers_plus_nan),
-        column('Min_Humidity', elements=integers_plus_nan),
-        column('Max_Sea_Level_PressurehPa', elements=integers_plus_nan),
-        column('Mean_Sea_Level_PressurehPa', elements=integers_plus_nan),
-        column('Min_Sea_Level_PressurehPa', elements=integers_plus_nan),
+        column('date', elements=dates),
+        column('Max_TemperatureC', elements=integers()),
+        column('Mean_TemperatureC', elements=integers()),
+        column('Min_TemperatureC', elements=integers()),
+        column('Dew_PointC', elements=integers()),
+        column('MeanDew_PointC', elements=integers()),
+        column('Min_DewpointC', elements=integers()),
+        column('Max_Humidity', elements=integers()),
+        column('Mean_Humidity', elements=integers()),
+        column('Min_Humidity', elements=integers()),
+        column('Max_Sea_Level_PressurehPa', elements=integers()),
+        column('Mean_Sea_Level_PressurehPa', elements=integers()),
+        column('Min_Sea_Level_PressurehPa', elements=integers()),
         column('Max_VisibilityKm',
-               elements=floats(allow_infinity=False, allow_nan=True)),
+               elements=floats(allow_infinity=False, allow_nan=False)),
         column('Mean_VisibilityKm',
-               elements=floats(allow_infinity=False, allow_nan=True)),
+               elements=floats(allow_infinity=False, allow_nan=False)),
         column('Min_VisibilitykM',
-               elements=floats(allow_infinity=False, allow_nan=True)),
-        column('Max_Wind_SpeedKm_h', elements=integers_plus_nan),
-        column('Mean_Wind_SpeedKm_h', elements=integers_plus_nan),
+               elements=floats(allow_infinity=False, allow_nan=False)),
+        column('Max_Wind_SpeedKm_h', elements=integers()),
+        column('Mean_Wind_SpeedKm_h', elements=integers()),
         column('Max_Gust_SpeedKm_h',
-               elements=floats(allow_infinity=False, allow_nan=True)),
+               elements=floats(allow_infinity=False, allow_nan=False)),
         column('Precipitationmm',
-               elements=floats(allow_infinity=False, allow_nan=True)),
-        column('CloudCover', elements=sampled_from(['NA', np.NaN] +
+               elements=floats(allow_infinity=False, allow_nan=False)),
+        column('CloudCover', elements=sampled_from(['NA'] +
                [str(i) for i in range(0, 9)])),
-        column('Events', elements=sampled_from([np.NaN] +
+        column('Events', elements=sampled_from(
                ['Rain', 'Fog-Rain-Snow', 'Snow', 'Rain-Snow', 'Fog-Snow',
                 'Rain-Thunderstorm', 'Rain-Snow-Hail', 'Fog-Rain', 'Fog',
                 'Fog-Snow-Hail', 'Thunderstorm', 'Fog-Rain-Thunderstorm',
@@ -273,8 +294,17 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
                 'Rain-Hail-Thunderstorm', 'Fog-Rain-Snow-Hail',
                 'Fog-Thunderstorm', 'Rain-Snow-Thunderstorm',
                 'Fog-Rain-Hail-Thunderstorm', 'Snow-Hail'])),
-        column('WindDirDegrees', elements=integers_plus_nan)],
+        column('WindDirDegrees', elements=integers())],
         index=range_indexes(min_size=10, max_size=100)))
+
+    # Add the nans
+    rows = len(weather_df)
+    len_cols = len(weather_df.columns)
+    ref_row = ['BE', '2013-01-06'] + [1 for i in range(20)] + ['Rain'] + [1]
+    for col_num in range(len_cols):
+        new_row = ref_row[:col_num] + [np.NaN] + ref_row[col_num + 1:]
+        weather_df.loc[rows+col_num] = new_row
+    weather_df.loc[rows+len_cols] = [np.NaN for i in range(len_cols)]
 
     return {'googletrend.csv': google_df, 'state_names.csv': state_names_df,
             'store_states.csv': store_states_df, 'store.csv': stores_df,
