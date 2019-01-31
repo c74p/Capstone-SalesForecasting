@@ -3,7 +3,7 @@ from hypothesis import assume, example, given, HealthCheck, note, settings
 from hypothesis import unlimited
 from hypothesis import Verbosity # NOQA
 from hypothesis.extra.pandas import column, data_frames, range_indexes
-from hypothesis.strategies import composite, datetimes, floats, integers, just
+from hypothesis.strategies import composite, floats, integers, just
 from hypothesis.strategies import one_of, sampled_from, SearchStrategy, text
 import numpy as np
 import pandas as pd
@@ -99,14 +99,38 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
     def plus_nan(draw, strat: SearchStrategy) -> SearchStrategy:
         return draw(one_of(just(np.NaN), strat))
 
-    stores = integers(min_value=0, max_value=2000)
+    # Create a strategy to generate store numbers
+    # Note that in order to create well-formed dataframes, we'll limit the
+    # number of choices to much lower than the real number
+    stores = integers(min_value=0, max_value=500)
     stores_plus_nan = plus_nan(stores)
 
-    states = sampled_from(state_abbreviations)
+    # Note that in order to create well-formed dataframes, here we'll assign
+    # each store to a state - meaning if we want to generate a state, we'll
+    # first choose a store number and then use that to assign a state
+    number_of_states = len(state_abbreviations)
+
+    @composite
+    def state_strat(draw) -> SearchStrategy:
+        store = draw(stores)
+        state_num = store % number_of_states
+        return state_abbreviations[state_num]
+
+    states = state_strat()
     states_plus_nan = plus_nan(states)
 
-    dates = datetimes(min_value=datetime.datetime(2013, 1, 1),
-                      max_value=datetime.datetime(2015, 12, 12))
+    # Note that in order to create well-formed dataframes, here we'll assign
+    # each store to a date - meaning if we want to generate a date, we'll
+    # first choose a store number and then use that to assign a date
+    date_range = pd.date_range(start='2013-01-01', end='2015-12-12', freq='D')
+
+    @composite
+    def date_strat(draw) -> SearchStrategy:
+        store = draw(stores)
+        date_num = store % len(date_range)
+        return date_range[date_num]
+
+    dates = date_strat()
     dates_plus_nan = plus_nan(dates)
 
     integers_plus_nan = plus_nan(integers())
@@ -197,7 +221,8 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
     for store in stores_overlap:
         stores_maybe_NaN_df = \
             stores_maybe_NaN_df.loc[stores_maybe_NaN_df.Store == store]
-    stores_df = stores_no_NaN_df.append(stores_maybe_NaN_df, sort=None)
+    stores_df = stores_no_NaN_df.append(stores_maybe_NaN_df, sort=None,
+        ignore_index=True)
 
     # We'll create a store_states dataframe by appending some rows with
     # possibly-NaN values to some rows with only non-NaN values
@@ -206,10 +231,10 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
         column('State', elements=states_plus_nan)
         ]))
 
-    store_states_no_NaN_df = draw(data_frames([
+    store_states_no_NaN_df = draw(data_frames(columns=[
         column('Store', elements=stores, unique=True),
-        column('State', elements=states)
-        ]))
+        column('State', elements=states)],
+        index=range_indexes(min_size=10, max_size=500)))
 
     # Check for any overlap between store_states_maybe_NaN_df and
     # store_states_no_NaN_df in the 'Store' column, since we want stores to be
@@ -221,7 +246,12 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
         store_states_maybe_NaN_df = \
             store_states_maybe_NaN_df[store_states_maybe_NaN_df.Store == store]
     store_states_df = store_states_no_NaN_df.append(
-        store_states_maybe_NaN_df, sort=None)
+        store_states_maybe_NaN_df, sort=None, ignore_index=True)
+
+    # store_states_df = draw(data_frames([
+    #    column('Store', elements=stores_plus_nan, unique=True),
+    #    column('State', elements=states_plus_nan)
+    #    ]))
 
     # We'll create a train dataframe by appending some rows with possibly-NaN
     # values to some rows with only non-NaN values
@@ -254,12 +284,8 @@ def create_dataframes(draw) -> Dict[str, pd.DataFrame]:
         index=range_indexes(min_size=1, max_size=10000)
         ))
 
-    train_df = train_no_NaN_df.append(train_maybe_NaN_df, sort=None)
-
-    store_states_df = draw(data_frames([
-        column('Store', elements=stores_plus_nan, unique=True),
-        column('State', elements=states_plus_nan)
-        ]))
+    train_df = train_no_NaN_df.append(train_maybe_NaN_df, sort=None,
+        ignore_index=True)
 
     # Note that there are a lot of integer-valued columns in here; that's what
     # came out of the original dataframe. May need to revisit whether it's

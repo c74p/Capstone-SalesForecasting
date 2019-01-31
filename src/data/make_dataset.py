@@ -1,4 +1,3 @@
-import numpy as np
 import os
 import pandas as pd
 import re
@@ -57,38 +56,26 @@ def convert_to_snake_case(string: str) -> str:
 
 
 def replace_nans(column: pd.Series) -> None:
-    """ Replace NaNs as appropriate in given columns, subject to caveats:
-        - Columns named 'store', 'date', 'week', 'sales', or 'file' are
-          unchanged
+    """ Replace NaNs as appropriate in given columns:
         - For columns of Floats, replace with the mean
         - For columns of Objects, replace with 'None'
         - For columns of Ints, replace with the mean coerced to Int
-    This is consistent with the data-wrangling; the replaced variables are
-    independent variables that aren't crucial.  'store', 'date', 'week', and
-    'file' are crucial variables where a nan couldn't be imputed from the data.
-    'sales' is the target variable. Rows with nans for 'store', 'date', 'week',
-    'sales', and 'file' will be thrown out when the dataframes are merged.
 
     This function changes the values in place; no value is returned.
     """
     # Fill NaNs for columns of floats with the mean as above
-    # 'store' and 'sales' should not be floats anyway; but if there are any
-    # NaNs, pandas will coerce the column dtype to float, thus we check
-    if column.dtype == 'float64' and column.name not in ['store', 'sales',
-            'file'] and len(column) > 0:
+    # Need to check the column is non-empty or will get an error
+    if column.dtype == 'float64' and len(column) > 0:
         column.fillna(column.mean(), inplace=True)
 
-    # Fill NaNs for columns of objects with 'None' (except 'date'/'week') as
-    # above
-    if column.dtype == 'object' and column.name not in \
-            ['date', 'week', 'file']:
+    # Fill NaNs for columns of objects with 'None'
+    if column.dtype == 'object':
         column.fillna('None', inplace=True)
 
-    # Fill NaNs for columns of ints with mean coerced to int (except 'store'/
-    # 'sales') as above
-    if column.dtype == 'int64' and column.name not in ['store', 'sales'] and\
-            len(column) > 0:
-                column.fillna(int(column.mean()), inplace=True)
+    # Fill NaNs for columns of ints with mean coerced to int
+    # Need to check the column is non-empty or will get an error
+    if column.dtype == 'int64' and len(column) > 0:
+        column.fillna(int(column.mean()), inplace=True)
 
 
 # EDIT CHANGE THE TYPE DEF AND DOCSTRING IF NEEDED !!!!
@@ -131,7 +118,8 @@ def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
             end_date = pd.to_datetime(google.week.max()[-10:])
 
             print(google)
-            print('# of days:', end_date-start_date, ' s ', start_date, ' e ', end_date)
+            print('# of days:', end_date-start_date, ' s ',
+                  start_date, ' e ', end_date)
             # create a new dataframe, week_lookup, listing all days in the
             # period and their corresponding week
             days = pd.date_range(start_date, end_date, freq='D')
@@ -160,7 +148,7 @@ def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
             # Re-merge week_lookup back into google so we end up with the
             # appropriate 7 days for each week
             new_thing = week_lookup.merge(google, left_on='Week_Start',
-                                       right_on='week_start')
+                                          right_on='week_start')
             # google.drop(['file', 'Week_Start', 'week'], axis='columns',
             #            inplace=True)
             # google = new_thing.copy()
@@ -204,13 +192,13 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
 
     # Replace any nans using the replace_nans function
     # Note that as currently written, 'store', 'sales', 'date', 'week', or
-    # 'file' columns don't get nans replaced (see replace_nans docstring for
-    # justification)
+    # 'file' columns don't get nans replaced - these can't just be imputed
     for df in dfs_dict.values():
         col_list = list(df.columns)
         df.columns = pd.Index(map(convert_to_snake_case, col_list))
         for column in df.columns:
-            replace_nans(df[column])
+            if column not in ['date', 'file', 'sales', 'store', 'week']:
+                replace_nans(df[column])
 
     df = dfs_dict['store_states.csv']
 
@@ -220,7 +208,7 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
     dfs_dict['train.csv']['store'] = \
         dfs_dict['train.csv']['store'].astype('float')
     df['store'] = df['store'].astype('float')
-    df = df.merge(dfs_dict['train.csv'], on='store', how='outer')
+    df = df.merge(dfs_dict['train.csv'], on='store')
     # print(df.date)
 
     if 'state_names.csv' in csv_list and len(dfs_dict['state_names.csv']) > 0:
