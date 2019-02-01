@@ -39,6 +39,8 @@ htmlcov/
 .coverage
 .coverage.*
 .cache
+.hypothesis
+.mypy_cache
 nosetests.xml
 coverage.xml
 *.cover
@@ -86,3 +88,4 @@ target/
 # vim
 *.swp
 *.swo
+tags
