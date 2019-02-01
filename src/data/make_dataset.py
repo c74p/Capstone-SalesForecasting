@@ -219,7 +219,6 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
         if dfs_dict['googletrend.csv'] is not None and \
                 dfs_dict['googletrend.csv'].notnull().any().any():
             # Ensure that both dfs have strings for merging columns and merge
-            print('cols:', df.columns)
             df['date'] = pd.to_datetime(df['date'])
             dfs_dict['googletrend.csv']['date'] = \
                 pd.to_datetime(dfs_dict['googletrend.csv']['date'])
