@@ -117,9 +117,6 @@ def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
             # Note below it's -10: to get the last day of the max week
             end_date = pd.to_datetime(google.week.max()[-10:])
 
-            print(google)
-            print('# of days:', end_date-start_date, ' s ',
-                  start_date, ' e ', end_date)
             # create a new dataframe, week_lookup, listing all days in the
             # period and their corresponding week
             days = pd.date_range(start_date, end_date, freq='D')
@@ -134,6 +131,9 @@ def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
             # appropriate 7 days for each week
             new_thing = week_lookup.merge(google, left_on='Week_Start',
                                           right_on='week_start')
+            new_thing = new_thing[
+                    (new_thing.date >= pd.to_datetime('2013-01-01')) &
+                    (new_thing.date <= pd.to_datetime('2015-07-31'))]
             # google.drop(['file', 'Week_Start', 'week'], axis='columns',
             #            inplace=True)
             # google = new_thing.copy()
@@ -205,8 +205,8 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
         df['state_name'] = df['state_name'].astype('object')
         dfs_dict['weather.csv']['file'] = \
             dfs_dict['weather.csv']['file'].astype('object')
-        df = df.merge(dfs_dict['weather.csv'], left_on='state_name',
-                      right_on='file').drop('file', axis='columns')
+        df = df.merge(dfs_dict['weather.csv'], left_on=['state_name', 'date'],
+                      right_on=['file', 'date']).drop('file', axis='columns')
 
     if 'googletrend.csv' in csv_list and len(dfs_dict['googletrend.csv']) > 0:
         # print('len of google csv', len(dfs_dict['googletrend.csv']))
@@ -219,6 +219,7 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
         if dfs_dict['googletrend.csv'] is not None and \
                 dfs_dict['googletrend.csv'].notnull().any().any():
             # Ensure that both dfs have strings for merging columns and merge
+            print('cols:', df.columns)
             df['date'] = pd.to_datetime(df['date'])
             dfs_dict['googletrend.csv']['date'] = \
                 pd.to_datetime(dfs_dict['googletrend.csv']['date'])

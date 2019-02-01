@@ -1,11 +1,12 @@
 import os
-import sys
 import pandas as pd
+import sys
 
 from tdda.constraints.pd.constraints import discover_df
 
-inpath = './train.csv'
-outpath = '../interim/constraints_initial_csvs/train_constraints.tdda'
+inpath = '../data/processed/wrangled_dataframe.csv'
+outpath = ''.join(['../data/interim/constraints_initial_csvs/',
+                   'wrangled_dataframe_constraints.tdda'])
 
 df = pd.read_csv(inpath, low_memory=False)
 constraints = discover_df(df)
