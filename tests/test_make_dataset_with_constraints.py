@@ -3,12 +3,13 @@ from pathlib import Path
 from unittest import TestCase, mock
 
 import sys, os # NOQA
-# THIS_PATH = os.path.dirname(os.path.abspath(__file__))
-# sys.path.insert(0, THIS_PATH + '/../')
-sys.path.insert(0, Path('..'))
+THIS_PATH = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, THIS_PATH + '/../')
+# sys.path.insert(0, Path('..'))
 from src.data import make_dataset # NOQA
 
-from tdda.constraints.pd.constraints import verify_df, detect_df # NOQA
+from tdda.constraints.pd.constraints import verify_df # NOQA
+from tdda.referencetest import ReferenceTestCase # NOQA
 
 # This is the test file for the src/data/make_dataset.py file.
 
@@ -107,13 +108,34 @@ class test_Merge_Csvs(TestCase):
         assert v.failures == 0
 
 
-def test_verify_csv_pull():
-    pass
-# Want verify_csv_pull() to:
-# - Check the csv pull and send a message to user
-#   - Either pull was successful, or pull failed, why, and what to do next
-# What could go wrong?
-# - Not all the csvs could be there
+class Test_Wrangled_Csv(ReferenceTestCase):
+
+    def setUp(self):
+        self.RAW_CSV_PATH = PROJ_ROOT / 'data' / 'raw'
+        self.REF_CSV_PATH = PROJ_ROOT / 'data' / 'processed' / \
+            'wrangled_dataframe.csv'
+
+    def tearDown(self):
+        pass
+
+    def test_wrangled_csv_correct(self):
+
+        df = make_dataset.merge_csvs(
+            make_dataset.import_csvs(self.RAW_CSV_PATH,
+                                     ignore_files=['test.csv',
+                                                   'sample_submission.csv'],
+                                     header=0,
+                                     low_memory=False))
+
+        ref_df = pd.read_csv(self.REF_CSV_PATH, header=0, low_memory=False)
+
+        self.assertDataFramesEqual(df, ref_df)
+
+        # Note that the path for the reference dataframe is specified in the
+        # root directory in conftest.py
+        # self.assertDataFrameCorrect(df, self.REF_CSV_PATH, header=0,
+        #                            low_memory=False)
+
 
 # Example assertions if needed
 # raise NotImplementedError('Insert test code here.')

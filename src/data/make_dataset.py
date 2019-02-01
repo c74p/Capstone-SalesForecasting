@@ -42,6 +42,7 @@ def import_csvs(
             df = pd.read_csv(file_path, **kwargs)
             dataframes[file_name] = df
 
+    print(dataframes.keys())
     return dataframes
 
 
