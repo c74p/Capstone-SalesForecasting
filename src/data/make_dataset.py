@@ -124,26 +124,11 @@ def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
             # period and their corresponding week
             days = pd.date_range(start_date, end_date, freq='D')
             week_lookup = pd.DataFrame({'date': days})
-            # week_lookup['Week_Start'] = week_lookup['day']
             week_lookup['num'] = week_lookup['date'].dt.dayofweek
             week_lookup['offset'] = (week_lookup['num'] + 1) % 7
             week_lookup['Week_Start'] = week_lookup['date'] - \
                 pd.to_timedelta(week_lookup['offset'], unit='D')
             week_lookup.drop(['num', 'offset'], axis='columns', inplace=True)
-            # weeks = pd.date_range(start_date, end_date +
-            # pd.to_timedelta('1D'), freq='W')
-            # all_weeks = sorted(7 * weeks)
-            # all_weeks = pd.Series(sorted(np.hstack([weeks for i in
-            #                                        range(0, 7)])))
-            # week_lookup = pd.DataFrame({'date': days,
-            #                            'Week_Start': all_weeks})
-            # week_lookup['Week_Start'] = \
-            #    week_lookup['Week_Start'].astype('<M8[ns]')
-            # google['week_start'] = \
-            #    google['week_start'].astype('<M8[ns]')
-            print('dtype', week_lookup['Week_Start'].dtype)
-            print(week_lookup.loc[0, 'Week_Start'])
-            # print(week_lookup)
 
             # Re-merge week_lookup back into google so we end up with the
             # appropriate 7 days for each week
@@ -164,19 +149,11 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
     """Merge the csvs from import_csvs into a single pd.DataFrame.
 
     - dfs_dict: a dictionary of dataframes keyed by name.
-        # EDIT update the 'required' description below if needed
-        - The current implementation requires the following:
-            - train.csv, store.csv, and store_states.csv are required to exist,
-              and to have at least one row with no NaN values.
-            - store.csv and store_states.csv must have unique values for store
-            - If weather.csv is included, state_names.csv is required.
-            - Otherwise, googletrend.csv, weather.csv, and state_names.csv are
-              optional - but constraint testing will check for them and code
-              will provide a warning to end-user if they're not present.
-              # EDIT come back and double-check the above is true
         - The reference implementation has dataframes generated from the
           following files in /data/raw/: 'googletrend.csv', 'state_names.csv',
           'store.csv', 'store_states.csv', 'train.csv', 'weather.csv'
+        - All of these files must exist and have at least one row with no
+          NaN values.
     """
 
     csv_list = dfs_dict.keys()
@@ -190,7 +167,7 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
             dfs_dict['weather.csv'].rename(
                 columns={'Min_DewpointC': 'MinDew_pointC'}, inplace=True)
 
-    # Replace any nans using the replace_nans function
+    # In each dataframe, update column names and replace any nans
     # Note that as currently written, 'store', 'sales', 'date', 'week', or
     # 'file' columns don't get nans replaced - these can't just be imputed
     for df in dfs_dict.values():
@@ -199,7 +176,12 @@ def merge_csvs(dfs_dict: Dict[str, pd.DataFrame]) -> (pd.DataFrame,
         for column in df.columns:
             if column not in ['date', 'file', 'sales', 'store', 'week']:
                 replace_nans(df[column])
+        # Drop any remaining rows with nans
+        df.dropna(axis='index', inplace=True)
 
+# date: google, train, weather
+# state: google, state_names, store_states, weather
+# store: store, store_states, train
     df = dfs_dict['store_states.csv']
 
     df = df.merge(dfs_dict['store.csv'], on='store')

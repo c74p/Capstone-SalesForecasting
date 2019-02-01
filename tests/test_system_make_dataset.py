@@ -1,16 +1,21 @@
-import os
-from src.data import make_dataset
 from unittest import TestCase
+
+import sys, os # NOQA
+this_path = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, this_path + '/../')
+from src.data import make_dataset # NOQA
 
 
 class test_Make_Dataset(TestCase):
 
     def setUp(self):
         # Config filepaths
-        PROJ_ROOT = os.path.abspath(os.getcwd())
+        PROJ_ROOT = os.path.abspath(os.pardir)
         directory = os.path.join(PROJ_ROOT, 'data', 'raw')
 
-        self.df = make_dataset.import_csvs(directory)
+        self.df = make_dataset.merge_csvs(make_dataset.import_csvs(directory,
+            ignore_files=['test.csv' 'sample_submission.csv'], header=0,
+            low_memory=False))
 
     def tearDown(self):
         pass
@@ -20,8 +25,12 @@ class test_Make_Dataset(TestCase):
         # User story: user runs src.make_dataset() on the current directory
         # and gets a fully functional dataset, including:
         #   - number of rows is correct
+
+        # This takes >8 GB of memory - only uncomment when ready!
+        ref.assertDataFrameCorrect(self.df, 'wrangled_dataframe.csv')
         assert len(self.df) == 1050330
         self.fail('Finish the test!')
+        self.fail('Uncomment the reference test above when ready')
         #   - training data is in there
         #   - trend data is in there
         #   - weather data is in there
