@@ -87,7 +87,7 @@ class test_Import_Csvs(TestCase):
                 mock_pandas.assert_called_with('bogus_dir/a.csv')
 
 
-@pytest.mark.skip(reason='takes too long right now')
+# @pytest.mark.skip(reason='takes too long right now')
 @given(text())
 @example('Precipitation_Mm')
 def test_convert_to_snake_case(t):
@@ -134,9 +134,7 @@ class test_Merge_Csvs(TestCase):
             self.dfs_dict[name] = self.raw_dfs_dict[name].copy()
 
         # Create the final merged df and paths to csv and constraint files
-        # EDIT put these back later
-        # self.merged_df, self.dfs_dict = \
-        #     make_dataset.merge_dfs(self.dfs_dict)
+        self.merged_df, self.dfs_dict = make_dataset.merge_dfs(self.dfs_dict)
         self.constraint_paths['wrangled_csv'] = \
             CONSTRAINTS_PATH / 'wrangled.tdda'
         self.raw_csv_paths['wrangled'] = \
@@ -155,7 +153,6 @@ class test_Merge_Csvs(TestCase):
             v = verify_df(df, self.constraint_paths[name])
             assert v.failures == 0
 
-    @pytest.mark.thisone
     def test_clean_googletrend(self):
         """Check that state_names gets cleaned without obvious errors."""
         df = make_dataset.clean_googletrend_csv(
@@ -245,6 +242,7 @@ class test_Merge_Csvs(TestCase):
         assert df.max_sea_level_pressureh_pa.dtype == 'int64'
         assert df.mean_sea_level_pressureh_pa.dtype == 'int64'
         assert df.min_sea_level_pressureh_pa.dtype == 'int64'
+        # EDIT Remove this comment at the end if everything passes
         # Note this is goofy
         assert df.max_visibility_km.dtype == 'float64'
         assert df.mean_visibility_km.dtype == 'float64'
@@ -258,7 +256,27 @@ class test_Merge_Csvs(TestCase):
         assert df.wind_dir_degrees.dtype == 'int64'
         assert df.notnull().all().all()
 
-    @pytest.mark.skip(reason='takes too long right now')
+    def test_merged_csv_has_google_states_names_store_train_and_weather(self):
+        """Intermediate test to make sure dfs get merged smoothly"""
+        assert 'trend' in self.merged_df.columns  # from googletrend.csv
+        assert 'state' in self.merged_df.columns  # from state_names.csv
+        assert 'store' in self.merged_df.columns  # from store_states.csv
+        assert 'assortment' in self.merged_df.columns  # from store.csv
+        assert 'sales' in self.merged_df.columns  # from train.csv
+        assert 'precipitationmm' in self.merged_df.columns  # from weather.csv
+        assert len(self.merged_df) == 942*1115  # = 1,050,330
+        assert not self.merged_df.open.isnull().any()
+        assert not self.merged_df.sales.isnull().any()
+        assert not self.merged_df.customers.isnull().any()
+        assert not self.merged_df.promo.isnull().any()
+        assert not self.merged_df.school_holiday.isnull().any()
+        assert not self.merged_df.state_holiday.isnull().any()
+        assert (self.merged_df.day_of_week ==
+                self.merged_df.date.dt.dayofweek).all()
+        assert len(self.merged_df[(self.merged_df.customers == 0) &
+                                  (self.merged_df.open == 1)]) == 0
+
+    # @pytest.mark.skip(reason='takes too long right now')
     def test_wrangled_csv_meets_constraints(self):
         """Check that the wrangled csv meets the constraints required."""
         wrangled_df = pd.read_csv(self.raw_csv_paths['wrangled'],
@@ -277,12 +295,13 @@ class Test_Wrangled_Csv(ReferenceTestCase):
     def tearDown(self):
         pass
 
-    @pytest.mark.skip(reason='not ready yet')
+    # @pytest.mark.skip(reason='not ready yet')
+    @pytest.mark.thisone
     def test_wrangled_csv_correct(self):
         """Check that the final constructed csv is an exact duplicate of the
         reference csv."""
 
-        df = make_dataset.merge_dfs(
+        df, _ = make_dataset.merge_dfs(
             make_dataset.import_csvs(self.RAW_CSV_PATH,
                                      ignore_files=['test.csv',
                                                    'sample_submission.csv'],
@@ -291,14 +310,19 @@ class Test_Wrangled_Csv(ReferenceTestCase):
 
         ref_df = pd.read_csv(self.REF_CSV_PATH, header=0, low_memory=False)
 
+        # Note that the file saves two columns as dtype '<M8[ns]', which is
+        # a subset of datetime64. Below we're casting the reference data to
+        # the more general datetime64 - apparently the reference test doesn't
+        # consider these sufficiently close otherwise.
+        # I'd rather convert the in-memory dataset to match the reference data
+        # set, but for some reason that test failed.
+        # See https://stackoverflow.com/questions/
+        # 29206612/difference-between-data-type-datetime64ns-and-m8ns for more
+        # detail.
+        ref_df['date'] = pd.to_datetime(ref_df['date'])
+        ref_df['week_start'] = pd.to_datetime(ref_df['week_start'])
+
         self.assertDataFramesEqual(df, ref_df)
-
-        # Note that the path for the reference dataframe is specified in the
-        # root directory in conftest.py
-        # self.assertDataFrameCorrect(df, self.REF_CSV_PATH, header=0,
-        #                            low_memory=False)
-
-
 # Example assertions if needed
 # raise NotImplementedError('Insert test code here.')
 #  Examples:

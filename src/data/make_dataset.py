@@ -42,7 +42,6 @@ def import_csvs(
             df = pd.read_csv(file_path, **kwargs)
             dataframes[file_name] = df
 
-    print(dataframes.keys())
     return dataframes
 
 
@@ -156,93 +155,6 @@ def clean_weather_csv(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def replace_nans(column: pd.Series) -> None:
-    """ Replace NaNs as appropriate in given columns:
-        - For columns of Floats, replace with the mean
-        - For columns of Objects, replace with 'None'
-        - For columns of Ints, replace with the mean coerced to Int
-
-    This function changes the values in place; no value is returned.
-    """
-    # Fill NaNs for columns of floats with the mean as above
-    # Need to check the column is non-empty or will get an error
-    if column.dtype == 'float64' and len(column) > 0:
-        column.fillna(column.mean(), inplace=True)
-
-    # Fill NaNs for columns of objects with 'None'
-    if column.dtype == 'object':
-        column.fillna('None', inplace=True)
-
-    # Fill NaNs for columns of ints with mean coerced to int
-    # Need to check the column is non-empty or will get an error
-    if column.dtype == 'int64' and len(column) > 0:
-        column.fillna(int(column.mean()), inplace=True)
-
-
-# EDIT CHANGE THE TYPE DEF AND DOCSTRING IF NEEDED !!!!
-def wrangle_googletrend_csv(google: pd.DataFrame) -> None:
-    """Wrangle the googletrend.csv dataframe:
-        - Change the 'file' column to 'state' with appropriate abbreviations.
-        - Change the 'week' column to 'date', making it day-based rather than
-          week-based for easy merging with the other dataframes.
-
-    This function changes the values in place; no value is returned.
-    """
-
-    if 'file' in google.columns:
-        google.dropna(axis='index', inplace=True)  # first drop rows w/any null
-        if len(google) > 0:  # only includes non-null rows now
-            # Create column 'state' in google dataframe with state abbrevs
-            # Abbreviations are the last two characters, except for 'HB,NI'
-            # import ipdb; ipdb.set_trace()
-            google['state'] = google.file.str[-2:]
-            google.loc[google.state == 'NI', 'state'] = 'HB,NI'
-            # cond = lambda series: series.str.endswith('HB,NI') # NOQA
-            # Where cond is true, hard-code 'HB,NI'
-            # google['state'] = google.loc[google.file.notnull(),
-            # 'file'].mask(cond, 'HB,NI', inplace=True)
-            # Where cond is NOT true, take the last two (FYI, odd syntax here)
-            # google['state'] = \
-            #    google.loc[google.file.notnull(),
-            #               'file'].where(cond, google['file'].str[-2:])
-
-            # For each week in dataframe google, add rows for each of the
-            # days in the week, so we can later merge against other day-based
-            # dataframes
-
-            # Figure out which day each week starts, along with a min and
-            # max week-start-date for the dataframe
-            google.loc[:, 'week_start'] = \
-                pd.to_datetime(google['week'].str[:10])
-            start_date = pd.to_datetime(google.week.min()[:10])
-            # Note below it's -10: to get the last day of the max week
-            end_date = pd.to_datetime(google.week.max()[-10:])
-
-            # create a new dataframe, week_lookup, listing all days in the
-            # period and their corresponding week
-            days = pd.date_range(start_date, end_date, freq='D')
-            week_lookup = pd.DataFrame({'date': days})
-            week_lookup['num'] = week_lookup['date'].dt.dayofweek
-            week_lookup['offset'] = (week_lookup['num'] + 1) % 7
-            week_lookup['Week_Start'] = week_lookup['date'] - \
-                pd.to_timedelta(week_lookup['offset'], unit='D')
-            week_lookup.drop(['num', 'offset'], axis='columns', inplace=True)
-
-            # Re-merge week_lookup back into google so we end up with the
-            # appropriate 7 days for each week
-            new_thing = week_lookup.merge(google, left_on='Week_Start',
-                                          right_on='week_start')
-            new_thing = new_thing[
-                    (new_thing.date >= pd.to_datetime('2013-01-01')) &
-                    (new_thing.date <= pd.to_datetime('2015-07-31'))]
-            # google.drop(['file', 'Week_Start', 'week'], axis='columns',
-            #            inplace=True)
-            # google = new_thing.copy()
-
-            # EDIT REMOVE THIS LATER IF NEEDED!!!!!
-            return new_thing
-
-
 # EDIT Update the type signature once the function has been changed to only
 # return a dataframe
 def merge_dfs(raw_dfs_dict: Dict[str, pd.DataFrame]) -> \
@@ -263,63 +175,54 @@ def merge_dfs(raw_dfs_dict: Dict[str, pd.DataFrame]) -> \
     for df in raw_dfs_list:
         dfs_dict[df] = raw_dfs_dict[df].copy()
 
+    # Run the custom cleaning functions on the dataframes that need them
     dfs_dict['googletrend.csv'] = \
         clean_googletrend_csv(dfs_dict['googletrend.csv'])
+    dfs_dict['store.csv'] = \
+        clean_store_csv(dfs_dict['store.csv'])
+    dfs_dict['weather.csv'] = \
+        clean_weather_csv(dfs_dict['weather.csv'])
+
+    # Run generic 'clean_other_dfs' function on the other dataframes
     dfs_dict['state_names.csv'] = \
         clean_other_dfs(dfs_dict['state_names.csv'])
     dfs_dict['store_states.csv'] = \
         clean_other_dfs(dfs_dict['store_states.csv'])
-    dfs_dict['store.csv'] = \
-        clean_store_csv(dfs_dict['store.csv'])
     dfs_dict['train.csv'] = \
         clean_other_dfs(dfs_dict['train.csv'])
-    dfs_dict['weather.csv'] = \
-        clean_weather_csv(dfs_dict['weather.csv'])
 
-# date: google, train, weather
-# state: google, state_names, store_states, weather
-# store: store, store_states, train
-    df = dfs_dict['store_states.csv']
+    # Start by merging store_states and state_names
+    df = dfs_dict['store_states.csv'].merge(dfs_dict['state_names.csv'],
+                                            on='state')
+    # Add in weather
+    df = df.merge(dfs_dict['weather.csv'],
+                  left_on='state_name', right_on='file')
 
+    # Drop file and state_name - they are colinear with 'state'
+    df.drop(['file', 'state_name'], axis='columns', inplace=True)
+
+    # Add in store
     df = df.merge(dfs_dict['store.csv'], on='store')
 
-    # Ensure that both dfs have float values for 'store' columns and merge
-    dfs_dict['train.csv']['store'] = \
-        dfs_dict['train.csv']['store'].astype('float')
-    df['store'] = df['store'].astype('float')
-    df = df.merge(dfs_dict['train.csv'], on='store')
-    # print(df.date)
+    # Add in train - note that since train.csv has some missing dates, where
+    # the store was apparently closed, we use 'outer' to capture all the dates
+    df = df.merge(dfs_dict['train.csv'], on=['date', 'store'], how='outer')
 
-    if 'state_names.csv' in raw_dfs_list and len(dfs_dict['state_names.csv']) > 0:
-        # Ensure that both dfs have str values for 'state' columns and merge
-        df['state'] = df['state'].astype('object')
-        dfs_dict['state_names.csv']['state'] = \
-            dfs_dict['state_names.csv']['state'].astype('object')
-        df = df.merge(dfs_dict['state_names.csv'], on='state')
+    # Add in googletrend, making sure to coerce 'date' to datetime first
+    df['date'] = pd.to_datetime(df['date'])
+    df = df.merge(dfs_dict['googletrend.csv'], on=['date', 'state'])
 
-    if 'weather.csv' in raw_dfs_list and len(dfs_dict['weather.csv']) > 0:
-        # Ensure that both dfs have strings for merging-on columns and merge
-        df['state_name'] = df['state_name'].astype('object')
-        dfs_dict['weather.csv']['file'] = \
-            dfs_dict['weather.csv']['file'].astype('object')
-        df = df.merge(dfs_dict['weather.csv'], left_on=['state_name', 'date'],
-                      right_on=['file', 'date']).drop('file', axis='columns')
-
-    if 'googletrend.csv' in raw_dfs_list and len(dfs_dict['googletrend.csv']) > 0:
-        # print('len of google csv', len(dfs_dict['googletrend.csv']))
-        dfs_dict['googletrend.csv'] = \
-            wrangle_googletrend_csv(dfs_dict['googletrend.csv'])
-
-        # print(type(dfs_dict['googletrend.csv']))
-
-        # if type(dfs_dict['googletrend.csv']) != "<class 'NoneType'>" and \
-        if dfs_dict['googletrend.csv'] is not None and \
-                dfs_dict['googletrend.csv'].notnull().any().any():
-            # Ensure that both dfs have strings for merging columns and merge
-            df['date'] = pd.to_datetime(df['date'])
-            dfs_dict['googletrend.csv']['date'] = \
-                pd.to_datetime(dfs_dict['googletrend.csv']['date'])
-            df = df.merge(dfs_dict['googletrend.csv'], on=['date', 'state'])
+    # final cleanup
+    df.loc[df.open.isnull(), 'open'] = 0
+    df.loc[df.sales.isnull(), 'sales'] = 0
+    df.loc[df.customers.isnull(), 'customers'] = 0
+    df.loc[df.promo.isnull(), 'promo'] = 0
+    df.loc[df.school_holiday.isnull(), 'school_holiday'] = 0
+    df.loc[df.state_holiday.isnull(), 'state_holiday'] = '0'
+    df['day_of_week'] = df.date.dt.dayofweek
+    df.loc[df.customers == 0, 'open'] = 0
+    df['date'] = pd.to_datetime(df['date'])
+    df['week_start'] = pd.to_datetime(df['week_start'])
 
     new_dict = {}
     for k, v in dfs_dict.items():
