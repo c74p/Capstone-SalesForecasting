@@ -103,9 +103,9 @@ class test_Merge_Csvs(TestCase):
 
     def setUp(self):
         """Set paths for constraint files, as well as raw csvs and processed
-        merged csv. Also pull in the raw csvs and run merge_csvs on it, since
+        merged csv. Also pull in the raw csvs and run merge_dfs on it, since
         we're already opening the files in order to do constraint testing.
-        Since we're opening the files themselves anyway and merge_csvs is a
+        Since we're opening the files themselves anyway and merge_dfs is a
         custom function for this specific set of data files, we'll just test
         against the actual raw files."""
 
@@ -130,11 +130,13 @@ class test_Merge_Csvs(TestCase):
             self.raw_dfs_dict[name] = \
                 pd.read_csv(self.raw_csv_paths[name], header=0,
                             low_memory=False)
+            # Make sure to .copy() to ensure raw_dfs_dict is not changed
             self.dfs_dict[name] = self.raw_dfs_dict[name].copy()
 
         # Create the final merged df and paths to csv and constraint files
-        self.merged_df, self.dfs_dict = \
-            make_dataset.merge_csvs(self.dfs_dict)
+        # EDIT put these back later
+        # self.merged_df, self.dfs_dict = \
+        #     make_dataset.merge_dfs(self.dfs_dict)
         self.constraint_paths['wrangled_csv'] = \
             CONSTRAINTS_PATH / 'wrangled.tdda'
         self.raw_csv_paths['wrangled'] = \
@@ -153,10 +155,108 @@ class test_Merge_Csvs(TestCase):
             v = verify_df(df, self.constraint_paths[name])
             assert v.failures == 0
 
+    @pytest.mark.thisone
+    def test_clean_googletrend(self):
+        """Check that state_names gets cleaned without obvious errors."""
+        df = make_dataset.clean_googletrend_csv(
+            self.raw_dfs_dict['googletrend.csv'])
+        assert list(df.columns) == \
+            list(map(lambda x: x.lower(), list(df.columns)))
+        assert len(df) == 13188
+        assert df.date.dtype == '<M8[ns]'
+        assert df.week_start.dtype == '<M8[ns]'
+        assert df.state.dtype == 'O'
+        assert df.trend.dtype == 'int64'
+        assert df.notnull().all().all()
+
     def test_clean_state_names(self):
-        """Check that clean_state_names functions properly."""
-        pass
-        # df = self.raw_dfs_dict[
+        """Check that state_names gets cleaned without obvious errors."""
+        df = make_dataset.clean_other_dfs(self.raw_dfs_dict['state_names.csv'])
+        assert list(df.columns) == \
+            list(map(lambda x: x.lower(), list(df.columns)))
+        assert len(df) == 16
+        assert df.state_name.dtype == 'O'
+        assert df.state.dtype == 'O'
+        assert df.notnull().all().all()
+
+    def test_clean_store_states(self):
+        """Check that store_states gets cleaned without obvious errors."""
+        df = make_dataset.clean_other_dfs(
+            self.raw_dfs_dict['store_states.csv'])
+        assert list(df.columns) == \
+            list(map(lambda x: x.lower(), list(df.columns)))
+        assert len(df) == 1115
+        assert df.state.dtype == 'O'
+        assert df.store.dtype == 'int64'
+        assert df.notnull().all().all()
+
+    def test_clean_store_csv(self):
+        """Check that store.csv gets cleaned without obvious errors."""
+        df = make_dataset.clean_store_csv(self.raw_dfs_dict['store.csv'])
+        assert list(df.columns) == \
+            list(map(lambda x: x.lower(), list(df.columns)))
+        assert len(df) == 1115
+        assert df.store.dtype == 'int64'
+        assert df.store_type.dtype == 'O'
+        assert df.assortment.dtype == 'O'
+        assert df.competition_distance.dtype == 'float64'
+        assert df.competition_open_since_month.dtype == 'float64'
+        assert df.competition_open_since_year.dtype == 'float64'
+        assert df.promo2.dtype == 'int64'
+        assert df.promo2_since_week.dtype == 'float64'
+        assert df.promo2_since_year.dtype == 'float64'
+        assert df.promo_interval.dtype == 'O'
+        assert df.notnull().all().all()
+
+    def test_clean_train_csv(self):
+        """Check that train.csv gets cleaned without obvious errors."""
+        df = make_dataset.clean_other_dfs(self.raw_dfs_dict['train.csv'])
+        assert list(df.columns) == \
+            list(map(lambda x: x.lower(), list(df.columns)))
+        assert len(df) == 1017209
+        assert df.store.dtype == 'int64'
+        assert df.day_of_week.dtype == 'int64'
+        assert df.date.dtype == 'O'
+        assert df.sales.dtype == 'int64'
+        assert df.customers.dtype == 'int64'
+        assert df.open.dtype == 'int64'
+        assert df.promo.dtype == 'int64'
+        assert df.state_holiday.dtype == 'O'
+        assert df.school_holiday.dtype == 'int64'
+        assert df.notnull().all().all()
+
+    def test_clean_weather_csv(self):
+        """Check that weather.csv gets cleaned without obvious errors."""
+        df = make_dataset.clean_weather_csv(self.raw_dfs_dict['weather.csv'])
+        assert list(df.columns) == \
+            list(map(lambda x: x.lower(), list(df.columns)))
+        assert len(df) == 15840
+        assert df.file.dtype == 'O'
+        assert df.date.dtype == 'O'
+        assert df.max_temperature_c.dtype == 'int64'
+        assert df.mean_temperature_c.dtype == 'int64'
+        assert df.min_temperature_c.dtype == 'int64'
+        assert df.dew_point_c.dtype == 'int64'
+        assert df.mean_dew_point_c.dtype == 'int64'
+        assert df.min_dew_point_c.dtype == 'int64'
+        assert df.max_humidity.dtype == 'int64'
+        assert df.mean_humidity.dtype == 'int64'
+        assert df.min_humidity.dtype == 'int64'
+        assert df.max_sea_level_pressureh_pa.dtype == 'int64'
+        assert df.mean_sea_level_pressureh_pa.dtype == 'int64'
+        assert df.min_sea_level_pressureh_pa.dtype == 'int64'
+        # Note this is goofy
+        assert df.max_visibility_km.dtype == 'float64'
+        assert df.mean_visibility_km.dtype == 'float64'
+        assert df.min_visibility_km.dtype == 'float64'
+        assert df.max_wind_speed_km_h.dtype == 'int64'
+        assert df.mean_wind_speed_km_h.dtype == 'int64'
+        assert df.max_gust_speed_km_h.dtype == 'float64'
+        assert df.precipitationmm.dtype == 'float64'
+        assert df.cloud_cover.dtype == 'float64'
+        assert df.events.dtype == 'O'
+        assert df.wind_dir_degrees.dtype == 'int64'
+        assert df.notnull().all().all()
 
     @pytest.mark.skip(reason='takes too long right now')
     def test_wrangled_csv_meets_constraints(self):
@@ -182,7 +282,7 @@ class Test_Wrangled_Csv(ReferenceTestCase):
         """Check that the final constructed csv is an exact duplicate of the
         reference csv."""
 
-        df = make_dataset.merge_csvs(
+        df = make_dataset.merge_dfs(
             make_dataset.import_csvs(self.RAW_CSV_PATH,
                                      ignore_files=['test.csv',
                                                    'sample_submission.csv'],
