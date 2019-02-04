@@ -264,6 +264,7 @@ class test_Merge_Csvs(TestCase):
         assert 'assortment' in self.merged_df.columns  # from store.csv
         assert 'sales' in self.merged_df.columns  # from train.csv
         assert 'precipitationmm' in self.merged_df.columns  # from weather.csv
+        # There are 1,115 stores, and 942 days in the timeframe
         assert len(self.merged_df) == 942*1115  # = 1,050,330
         assert not self.merged_df.open.isnull().any()
         assert not self.merged_df.sales.isnull().any()
@@ -275,6 +276,12 @@ class test_Merge_Csvs(TestCase):
                 self.merged_df.date.dt.dayofweek).all()
         assert len(self.merged_df[(self.merged_df.customers == 0) &
                                   (self.merged_df.open == 1)]) == 0
+        # Check that each ('store', 'date') tuple is unique
+        assert (self.merged_df.groupby(['store', 'date']).size() == 1).all()
+        # Check that each ('store', 'state') tuple has 942 instances -- again,
+        # 942 days for each store in the dataset -- in other words, each
+        # ('store', 'state') tuple is unique up to differing dates
+        assert (self.merged_df.groupby(['store', 'state']).size() == 942).all()
 
     # @pytest.mark.skip(reason='takes too long right now')
     def test_wrangled_csv_meets_constraints(self):
