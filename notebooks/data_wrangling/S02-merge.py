@@ -3,48 +3,47 @@ import matplotlib
 matplotlib.use('TkAgg') # NOQA, need this line for plotting
 import matplotlib.pyplot as plt
 plt.ion() # NOQA, need this line for plotting
-# import seaborn as sns
+import seaborn as sns; sns.set()
 import pandas as pd
 from typing import Dict, List
 
-# get file names
-# Note that I would love to not hard-code this, but Cauldron does not have
-# a cd.shared.all() or similar functionality
-files_pulled: List[str] = ['googletrend.csv', 'sample_submission.csv',
-                           'state_names.csv', 'store.csv', 'store_states.csv',
-                           'train.csv', 'weather.csv']
+import os, sys # NOQA
+sys.path.append('../../src/data')
+import make_dataset # NOQA, need the lines above to get directories right
 
+cd.display.markdown(
+    """
+    # Merge dataframes
+    In order to merge the dataframes, we did the following:\n
+    - Cleaned each dataframe individually
+        - For train.csv, store_states.csv, and state_names.csv, it was just
+        making column names consistent\n
+        - For googletrend.csv, it was fixing 'file' to be legitimate state
+        names and changing the 'week' format into actual dates\n
+        - For store.csv, it was replacing NaNs with the mean of the column\n
+        - For weather.csv, there were a few mistyped column names, and some
+        NaNs that had to be replaced\n\n
+    We end up with a dataframe with 1,050,330 rows: there are 942 stores, and
+    there are 942 days from 2013-01-01 to 2015-07-31, so we have 942 * 1115 =
+    1,050,330 rows.\n
+    Our table has 43 columns.
+    """
+    )
+try:
+    # If the wrangled dataframe is in the folder, use it - that's faster than
+    # recreating the dataframe
+    df = pd.read_csv('../../data/processed/wrangled_dataframe.csv', header=0,
+                     low_memory=False)
+except:
+    # If not, create the dataframe
+    # get file names
+    # Note that I would love to not hard-code this, but Cauldron does not have
+    # a cd.shared.all() or similar functionality
+    files_pulled: List[str] = ['googletrend.csv', 'state_names.csv', 'store.csv',
+                               'store_states.csv', 'train.csv', 'weather.csv']
 
-dfs: Dict[str, pd.DataFrame] = cd.shared.dfs
+    dfs_dict: Dict[str, pd.DataFrame] = cd.shared.dfs_dict
 
-df: pd.DataFrame = dfs['train.csv']  # no nans
-goog: pd.DataFrame = dfs['googletrend.csv']  # no nans
-states: pd.DataFrame = dfs['store_states.csv']  # no nans
-names: pd.DataFrame = dfs['state_names.csv']  # no nans
-stores: pd.DataFrame = dfs['store.csv']  # see below for nans
-weather: pd.DataFrame = dfs['weather.csv']  # see below for nans
+    df = make_dataset.merge_dfs(dfs_dict)
 
-# Nulls to deal with:
-#   - Stores - CompetitionDistance fill with mean
-#   - Stores - CompetitionOpenSinceMonth fill with mean
-#   - Stores - CompetitionOpenSinceYear fill with mean
-#   - Stores - Promo2SinceWeek fill with zero
-#   - Stores - Promo2SinceYear fill with zero
-#   - Stores - PromoInterval fill with 'None'
-#   - Weather - Max_VisibityKm fill with mean
-#   - Weather - Min_VisibitykM fill with mean
-#   - Weather - Mean_VisibityKm fill with mean
-#   - Weather - Max_Gust_SpeedKm_h fill with mean
-#   - Weather - CloudCover fill with mean
-#   - Weather - Events fill with string 'No events'
-
-
-# merge appropriately
-
-# save as new dataframe
-print(df.head())
-print(goog.head())
-print(states.head())
-print(names.head())
-print(stores.head())
-print(weather.head())
+cd.display.table(df.head())

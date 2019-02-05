@@ -7,7 +7,7 @@ from unittest import mock
 
 
 class TestNotebook_Data_Wrangling_S01(StepTestCase):
-    """ Test class containing step unit tests for the notebook.
+    """ Test class containing step unit tests for the notebook step 1.
     Note that tests on functions themselves are in tests folder - this is
     solely tests on the notebook itself. """
 
@@ -38,26 +38,18 @@ class TestNotebook_Data_Wrangling_S01(StepTestCase):
         # not technically necessary but we already invested 5s in this
         assert csvs_pulled == files
 
-    def test_with_mock(self):
-        """Mock version of the previous test. Note that this version of the
-        test by itself only ran a half-second faster than the full regular
-        version above. I'm leaving this in, but also including the original
-        test.  Seems that maybe Cauldron tests are just very slow."""
-        # """All available csvs in the directory should be pulled"""
+class TestNotebook_Data_Wrangling_S02(StepTestCase):
+    """ Test class containing step unit tests for the notebook step 2.
+    """
 
-        with mock.patch('make_dataset.import_csvs', return_value={}):
-            self.run_step('S01-import.py')
+    def test_gets_all_csvs(self):
+        """ Since this step does nothing except show the head of a merged
+        dataframe, I'm just testing for success."""
 
-        files_to_pull: List[str] = ['googletrend.csv', 'sample_submission.csv',
-                                    'state_names.csv', 'store.csv',
-                                    'store_states.csv', 'train.csv',
-                                    'weather.csv']
+        # Run the step 
+        # Only add this step if needed
+        # self.run_step('S01-import.py')
+        result = self.run_step('S02-merge.py')
+        # Validate that the step ran successfully 
+        self.assertTrue(result.success)
 
-        directory = cd.shared.fetch('directory')
-
-        files_mock_pulled: List[str] = [file for file in os.listdir(directory)
-                                        if file.endswith('.csv') and
-                                        file != 'test.csv']
-
-        for file in files_to_pull:
-            assert file in files_mock_pulled
