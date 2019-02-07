@@ -223,6 +223,8 @@ def merge_dfs(raw_dfs_dict: Dict[str, pd.DataFrame]) -> \
     df.loc[df.customers == 0, 'open'] = 0
     df['date'] = pd.to_datetime(df['date'])
     df['week_start'] = pd.to_datetime(df['week_start'])
+    df.loc[df.open == 0, 'promo'] = 0
+    df.loc[df.open == 0, 'promo2'] = 0
 
     new_dict = {}
     for k, v in dfs_dict.items():

@@ -4,9 +4,8 @@ import sys
 
 from tdda.constraints.pd.constraints import discover_df
 
-inpath = '../data/processed/wrangled_dataframe.csv'
-outpath = ''.join(['../data/interim/constraints_initial_csvs/',
-                   'wrangled_dataframe_constraints.tdda'])
+inpath = '../../data/processed/wrangled_dataframe.csv'
+outpath = '../../data/interim/constraints_initial_csvs/wrangled_dataframe.tdda'
 
 df = pd.read_csv(inpath, low_memory=False)
 constraints = discover_df(df)

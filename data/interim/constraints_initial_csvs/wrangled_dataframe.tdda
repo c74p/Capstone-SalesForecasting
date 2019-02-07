@@ -1,0 +1,336 @@
+{
+    "creation_metadata": {
+        "local_time": "2019-02-07 14:14:44",
+        "utc_time": "2019-02-07 19:19:44",
+        "creator": "TDDA 1.0.13",
+        "host": "debian",
+        "user": "chachi",
+        "n_records": 1050330,
+        "n_selected": 1050330
+    },
+    "fields": {
+        "store": {
+            "type": "int",
+            "min": 1,
+            "max": 1115,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "state": {
+            "type": "string",
+            "min_length": 2,
+            "max_length": 5,
+            "max_nulls": 0,
+            "allowed_values": [
+                "BE",
+                "BW",
+                "BY",
+                "HB,NI",
+                "HE",
+                "HH",
+                "NW",
+                "RP",
+                "SH",
+                "SN",
+                "ST",
+                "TH"
+            ]
+        },
+        "date": {
+            "type": "string",
+            "min_length": 10,
+            "max_length": 10,
+            "max_nulls": 0
+        },
+        "max_temperature_c": {
+            "type": "int",
+            "min": -11,
+            "max": 38,
+            "max_nulls": 0
+        },
+        "mean_temperature_c": {
+            "type": "int",
+            "min": -13,
+            "max": 31,
+            "max_nulls": 0
+        },
+        "min_temperature_c": {
+            "type": "int",
+            "min": -15,
+            "max": 24,
+            "max_nulls": 0
+        },
+        "dew_point_c": {
+            "type": "int",
+            "min": -14,
+            "max": 25,
+            "max_nulls": 0
+        },
+        "mean_dew_point_c": {
+            "type": "int",
+            "min": -15,
+            "max": 20,
+            "max_nulls": 0
+        },
+        "min_dew_point_c": {
+            "type": "int",
+            "min": -73,
+            "max": 18,
+            "max_nulls": 0
+        },
+        "max_humidity": {
+            "type": "int",
+            "min": 44,
+            "max": 100,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "mean_humidity": {
+            "type": "int",
+            "min": 30,
+            "max": 100,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "min_humidity": {
+            "type": "int",
+            "min": 4,
+            "max": 100,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "max_sea_level_pressureh_pa": {
+            "type": "int",
+            "min": 976,
+            "max": 1043,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "mean_sea_level_pressureh_pa": {
+            "type": "int",
+            "min": 974,
+            "max": 1040,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "min_sea_level_pressureh_pa": {
+            "type": "int",
+            "min": 970,
+            "max": 1038,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "max_visibility_km": {
+            "type": "real",
+            "min": 0.0,
+            "max": 31.0,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "mean_visibility_km": {
+            "type": "real",
+            "min": 0.0,
+            "max": 31.0,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "min_visibility_km": {
+            "type": "real",
+            "min": 0.0,
+            "max": 31.0,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "max_wind_speed_km_h": {
+            "type": "int",
+            "min": 3,
+            "max": 101,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "mean_wind_speed_km_h": {
+            "type": "int",
+            "min": 2,
+            "max": 53,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "max_gust_speed_km_h": {
+            "type": "real",
+            "min": 21.0,
+            "max": 111.0,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "precipitationmm": {
+            "type": "real",
+            "min": 0.0,
+            "max": 58.93,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "cloud_cover": {
+            "type": "real",
+            "min": 0.0,
+            "max": 8.0,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "events": {
+            "type": "string",
+            "min_length": 3,
+            "max_length": 27,
+            "max_nulls": 0
+        },
+        "wind_dir_degrees": {
+            "type": "int",
+            "min": -1,
+            "max": 360,
+            "max_nulls": 0
+        },
+        "store_type": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 1,
+            "max_nulls": 0,
+            "allowed_values": [
+                "a",
+                "b",
+                "c",
+                "d"
+            ]
+        },
+        "assortment": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 1,
+            "max_nulls": 0,
+            "allowed_values": [
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        "competition_distance": {
+            "type": "real",
+            "min": 20.0,
+            "max": 75860.0,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "competition_open_since_month": {
+            "type": "real",
+            "min": 1.0,
+            "max": 12.0,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "competition_open_since_year": {
+            "type": "real",
+            "min": 1900.0,
+            "max": 2015.0,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "promo2": {
+            "type": "int",
+            "min": 0,
+            "max": 1,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "promo2_since_week": {
+            "type": "real",
+            "min": 1.0,
+            "max": 50.0,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "promo2_since_year": {
+            "type": "real",
+            "min": 2009.0,
+            "max": 2015.0,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "promo_interval": {
+            "type": "string",
+            "min_length": 4,
+            "max_length": 16,
+            "max_nulls": 0,
+            "allowed_values": [
+                "Feb,May,Aug,Nov",
+                "Jan,Apr,Jul,Oct",
+                "Mar,Jun,Sept,Dec",
+                "None"
+            ]
+        },
+        "day_of_week": {
+            "type": "int",
+            "min": 0,
+            "max": 6,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "sales": {
+            "type": "real",
+            "min": 0.0,
+            "max": 41551.0,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "customers": {
+            "type": "real",
+            "min": 0.0,
+            "max": 7388.0,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "open": {
+            "type": "real",
+            "min": 0.0,
+            "max": 1.0,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "promo": {
+            "type": "real",
+            "min": 0.0,
+            "max": 1.0,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "state_holiday": {
+            "type": "string",
+            "min_length": 1,
+            "max_length": 1,
+            "max_nulls": 0,
+            "allowed_values": [
+                "0",
+                "a",
+                "b",
+                "c"
+            ]
+        },
+        "school_holiday": {
+            "type": "real",
+            "min": 0.0,
+            "max": 1.0,
+            "sign": "non-negative",
+            "max_nulls": 0
+        },
+        "trend": {
+            "type": "int",
+            "min": 28,
+            "max": 100,
+            "sign": "positive",
+            "max_nulls": 0
+        },
+        "week_start": {
+            "type": "string",
+            "min_length": 10,
+            "max_length": 10,
+            "max_nulls": 0
+        }
+    }
+}

@@ -256,6 +256,7 @@ class test_Merge_Csvs(TestCase):
         assert df.wind_dir_degrees.dtype == 'int64'
         assert df.notnull().all().all()
 
+    @pytest.mark.thisone
     def test_merged_csv_has_google_states_names_store_train_and_weather(self):
         """Intermediate test to make sure dfs get merged smoothly"""
         assert 'trend' in self.merged_df.columns  # from googletrend.csv
@@ -282,6 +283,12 @@ class test_Merge_Csvs(TestCase):
         # 942 days for each store in the dataset -- in other words, each
         # ('store', 'state') tuple is unique up to differing dates
         assert (self.merged_df.groupby(['store', 'state']).size() == 942).all()
+        # If you're closed, you're not on promo
+        assert len(self.merged_df[(self.merged_df.promo == 1) &
+                                  (self.merged_df.open == 0)]) == 0
+        # If you're closed, you're not on promo2 either
+        assert len(self.merged_df[(self.merged_df.promo2 == 1) &
+                                  (self.merged_df.open == 0)]) == 0
 
     # @pytest.mark.skip(reason='takes too long right now')
     def test_wrangled_csv_meets_constraints(self):
@@ -303,7 +310,6 @@ class Test_Wrangled_Csv(ReferenceTestCase):
         pass
 
     # @pytest.mark.skip(reason='not ready yet')
-    @pytest.mark.thisone
     def test_wrangled_csv_correct(self):
         """Check that the final constructed csv is an exact duplicate of the
         reference csv."""
