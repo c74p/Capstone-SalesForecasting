@@ -286,9 +286,6 @@ class test_Merge_Csvs(TestCase):
         # If you're closed, you're not on promo
         assert len(self.merged_df[(self.merged_df.promo == 1) &
                                   (self.merged_df.open == 0)]) == 0
-        # If you're closed, you're not on promo2 either
-        assert len(self.merged_df[(self.merged_df.promo2 == 1) &
-                                  (self.merged_df.open == 0)]) == 0
 
     # @pytest.mark.skip(reason='takes too long right now')
     def test_wrangled_csv_meets_constraints(self):
