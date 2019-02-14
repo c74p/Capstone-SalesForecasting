@@ -52,4 +52,3 @@ class TestNotebook_Data_Wrangling_S02(StepTestCase):
         result = self.run_step('S02-merge.py')
         # Validate that the step ran successfully 
         self.assertTrue(result.success)
-

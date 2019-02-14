@@ -1,0 +1,22 @@
+{
+  "author": "",
+  "id": "EDA",
+  "name": "EDA",
+  "naming_scheme": "S{{##}}-{{name}}.{{ext}}",
+  "steps": [
+    {
+      "name": "S01.py",
+      "title": "S02.py"
+    },
+    {
+      "name": "S02.py",
+      "title": "S02.py"
+    },
+    {
+      "name": "S03.py",
+      "title": "S03.py"
+    }
+  ],
+  "summary": "",
+  "title": "EDA"
+}
