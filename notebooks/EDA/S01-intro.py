@@ -14,32 +14,32 @@ sys.path.append('../../src/data')
 import make_dataset # NOQA, need the lines above to get directories right
 
 
-cd.display.html('<img src="./rossmann.jpeg" alt="Rossmann" \
-                style="width:128px;height:128px;" />')
+# Load and show the Rossmann pic at the top
+pic = plt.imread('rossmann.png')
+fig, ax = plt.subplots()
+ax.imshow(pic, extent=[0, 1, 0, 0.5])
+ax.xaxis.set_major_locator(plt.NullLocator())
+ax.yaxis.set_major_locator(plt.NullLocator())
+cd.display.pyplot(fig)
 
 cd.display.markdown(
     """
     # EDA
 
     Rossmann is a German retailer with 1,115 stores in 12 German states.
-    Our task is to forecast sales at Rossmann stores over six weeks.
+    Our task is to forecast sales at Rossmann stores over the course of six
+    weeks.
 
-    Our dataset has features relating to sales at each store on a given date.
-    Sales is our target variable; our 'index' variables are store and date.
-
-    One of the key things to notice is that we have lots of features, but many
-    of them aren't very impactful on the sales figure. We'll dig into that
-    further in a bit.
-
-    For now, here's a quick overview of what we've got:\n
+    We'll dig in as we go, but for now, here's a quick overview of what we've
+    got:\n
     - **store** and **date**, our index features\n
-    - **sales**, our target feature\n
-    - **customers**: Number of customers\n
+    - **sales**, our target variable\n
+    - **customers**: Number of customers at that store on that date\n
     - **open**: Whether or not that store is open on that date\n
     - **promo**: Whether or not that store had a promo on that date\n
     - **promo2**: Whether or not that store takes part in a 'continuing and
-      consecutive' promotion - maybe like a loyalty program? (We don't get much
-      detail here, but promo2 is pretty much forever for a given store.)\n
+      consecutive' promotion - maybe like a loyalty program. (We don't get much
+      detail here, but we'll dig in more later.)\n
     - **trend**: again not much detail here, but this appears to be the Google
       search trend for Rossmann in a particular state for the week. It's
       an integer between 0 and 100 (actual low is 28).\n
