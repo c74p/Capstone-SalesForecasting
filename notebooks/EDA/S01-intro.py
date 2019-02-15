@@ -54,6 +54,7 @@ cd.display.markdown(
     """
 )
 
+# Import df and format datetimes
 df = pd.read_csv('../../data/processed/wrangled_dataframe.csv',
                  header=0, low_memory=False)
 df['date'] = pd.to_datetime(df['date'])
@@ -75,5 +76,8 @@ df = df[['store', 'date', 'sales', 'customers', 'open', 'promo', 'promo2',
          'mean_dew_point_c', 'events', 'mean_humidity', 'max_humidity',
          'min_humidity']]
 
+# Create and display the chart
 cd.display.table(df.head())
+
+# Export df into Cauldron shared memory
 cd.shared.df = df

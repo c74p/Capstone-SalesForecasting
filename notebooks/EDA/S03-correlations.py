@@ -1,9 +1,7 @@
 import cauldron as cd
 import matplotlib
-matplotlib.use('TkAgg') # NOQA, need this line for plotting
-import matplotlib.image as mpimg
 import matplotlib.pyplot as plt
-plt.ion() # NOQA, need this line for plotting
+plt.rcParams.update({'figure.max_open_warning': 0}) # NOQA
 import seaborn as sns
 sns.set() # NOQA, need this for styling
 import pandas as pd
@@ -12,7 +10,7 @@ import os, sys # NOQA
 sys.path.append('../../src/data')
 import make_dataset # NOQA, need the lines above to get directories right
 
-
+# Import df from shared Cauldron memory
 df = cd.shared.df
 
 cd.display.markdown(
@@ -48,10 +46,13 @@ cd.display.markdown(
     """
 )
 
+# Prep data for display
 calc = df.corr()['sales']
 indices = abs(calc).sort_values(ascending=False).index
 result = calc[[col for col in indices]]
 res_df = pd.DataFrame({'Feature': result.index,
                        'Correlation With Sales': result.values})
 res_df['Correlation With Sales'] = res_df['Correlation With Sales'].round(4)
+
+# Display the chart
 cd.display.table(res_df)

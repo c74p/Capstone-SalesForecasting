@@ -1,8 +1,7 @@
 import cauldron as cd
 import matplotlib
-matplotlib.use('TkAgg') # NOQA, need this line for plotting
 import matplotlib.pyplot as plt
-# plt.ion() # NOQA, need this line for plotting
+plt.rcParams.update({'figure.max_open_warning': 0}) # NOQA
 import seaborn as sns
 sns.set() # NOQA, need this for styling
 import pandas as pd
@@ -11,7 +10,7 @@ import os, sys # NOQA
 sys.path.append('../../src/data')
 import make_dataset # NOQA, need the lines above to get directories right
 
-
+# Import df from shared Cauldron memory
 df = cd.shared.df
 
 cd.display.markdown(
@@ -29,15 +28,15 @@ cd.display.markdown(
     the store? In either case, we'll want to work with the marketing team to
     bring more people through the doors.
 
-    For now, since the correlation with sales is so strong, and because the
-    only levers we have to pull -- the only things in the data that we can
-    control -- are **promo** and **promo2**, let's continue to focus on
-    **sales** and keep **customers** as a secondary focus.
+    For now, since the correlation with sales is so strong, let's continue to
+    focus on **sales** and keep **customers** as a secondary focus.
     """
 )
 
+# Prep data for display
 avg_sales_by_customers = df.groupby('customers').sales.mean()
 
+# Create and display the chart
 fig, ax = plt.subplots()
 ax.plot(avg_sales_by_customers)
 ax.set_title('Average Sales by Number of Customers')

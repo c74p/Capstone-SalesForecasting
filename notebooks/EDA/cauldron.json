@@ -4,12 +4,32 @@
   "name": "EDA",
   "naming_scheme": "S{{##}}-{{name}}.{{ext}}",
   "steps": [
-    "S01-intro.py",
-    "S02-sales_chart.py",
-    "S03-correlations.py",
-    "S04-customers.py",
-    "S05-promo1.py",
-    "S06-promo2.py"
+    {
+      "name": "S01-intro.py",
+      "title": "S01-intro.py"
+    },
+    {
+      "name": "S02-sales_chart.py",
+      "title": "S02-sales_chart.py"
+    },
+    {
+      "name": "S03-correlations.py",
+      "title": "S03-correlations.py"
+    },
+    {
+      "name": "S04-customers.py",
+      "title": "S04-customers.py"
+    },
+    {
+      "name": "S05-promo1.py",
+      "title": "S05-promo1.py"
+    },
+    {
+      "name": "S06-promo2.py",
+      "title": "S06-promo2.py"
+    },
+    "S07-promo_ANOVA.py",
+    "S08-day_of_week.py"
   ],
   "summary": "",
   "title": "EDA"

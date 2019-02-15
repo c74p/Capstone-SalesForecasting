@@ -1,7 +1,7 @@
 import cauldron as cd
 import matplotlib
-matplotlib.use('TkAgg') # NOQA, need this line for plotting
 import matplotlib.pyplot as plt
+plt.rcParams.update({'figure.max_open_warning': 0}) # NOQA
 import seaborn as sns
 sns.set() # NOQA, need this for styling
 import pandas as pd
@@ -10,36 +10,34 @@ import os, sys # NOQA
 sys.path.append('../../src/data')
 import make_dataset # NOQA, need the lines above to get directories right
 
-
+# Import df from shared Cauldron memory
 df = cd.shared.df
 
 cd.display.markdown(
     """
     ## Sales vs Promo
 
-    So let's look at **promo** vs **sales**; there's a correlation of 0.50
-    between them, and **promo** is one of the few things that are under the
-    business's control in this dataset.
+    So let's look at **promo** vs **sales**; **promo** is one of the few things
+    that are under the business's control in this dataset.
 
     Overall, sales at a store with a promotion are about $2,000 (33%) higher
     than sales at a store without a promotion.
     """
 )
 
+# Prep the data for display
 open = df[df.open == 1]
-
 avg_promo_sales = open.loc[open.promo == 1, 'sales'].mean()
 avg_non_promo_sales = open.loc[open.promo == 0, 'sales'].mean()
 
+# Create and display the chart
 fig, ax = plt.subplots()
-
 ax.bar(x=['Non-promo', 'Promo'],
        height=[avg_non_promo_sales, avg_promo_sales], color=['blue', 'green'])
 ax.set_title('Average Promo vs Non-Promo Sales')
 ax.set_ylabel('Avg Daily Sales')
 ax.set_yticklabels(['${:,.0f}'.format(x) for x in ax.get_yticks()])
 ax.set_xlabel('Promotion Status')
-
 cd.display.pyplot(fig)
 
 
@@ -67,11 +65,13 @@ cd.display.markdown(
     """
 )
 
+# Prep data for display
 avg_daily_promo_sales_by_state = \
     open[open.promo == 1].groupby('state').sales.mean()
 avg_daily_non_promo_sales_by_state = \
     open[open.promo == 0].groupby('state').sales.mean()
 
+# Create and display the chart
 fig, ax_l = plt.subplots()
 ax_r = ax_l.twinx()
 

@@ -1,7 +1,7 @@
 import cauldron as cd
 import matplotlib
-matplotlib.use('TkAgg') # NOQA, need this line for plotting
 import matplotlib.pyplot as plt
+plt.rcParams.update({'figure.max_open_warning': 0}) # NOQA
 import seaborn as sns
 sns.set() # NOQA, need this for styling
 import pandas as pd
@@ -10,87 +10,59 @@ import os, sys # NOQA
 sys.path.append('../../src/data')
 import make_dataset # NOQA, need the lines above to get directories right
 
-
+# Import df from Cauldron shared memory
 df = cd.shared.df
 
 cd.display.markdown(
     """
-    ## Customers vs Promo
+    ## Impact of Multiple Promos
 
-    So let's look at **promo** vs **sales**; there's a correlation of 0.50
-    between them, and **promo** is one of the few things that are under the
-    business's control in this dataset.
+    So if we can reliably get an **extra $2,000 in revenue** per store by
+    running a promotion, can we just run more promotions? Uh, maybe.
 
-    Overall, sales at a store with a promotion are about $2,000 (33%) higher
-    than sales at a store without a promotion.
+    Below we see the uplift of a promo over the last 5 days' sales, broken down
+    by the number of promotions in the previous 5 days.
+
+    If there haven't been any promotions in the last 5 days, we can expect on
+    average an 80% uplift; but **each extra promotion cuts our uplift in
+    half**.
+
+    At the extreme right, we see that a promo on a 5th consecutive day has
+    a negative uplift (against the previous promoted days' sales).
+
+    So, we see diminishing returns as we promote more intensely. Where the
+    appropriate cutoff is, would require additional cost/benefit analysis.
     """
 )
 
-open = df[df.open == 1]
+# Prep data for display
+# Note that The first promo was on 2013-01-07, so a rolling 5-day window with
+# nans filled with zero is all correct
+roll5 = df.copy()
+roll5.set_index(['store', 'date'], inplace=True)
+roll5.sort_index(inplace=True)
 
-avg_promo_sales = open.loc[open.promo == 1, 'sales'].mean()
-avg_non_promo_sales = open.loc[open.promo == 0, 'sales'].mean()
+# Collect the average # of promos in the last 5 days inclusive
+roll5['promo_last_5'] = roll5.promo.rolling(5).mean()
 
+# Calculate the uplift over the last 5 days inclusive
+roll5['uplift'] = roll5.sales / roll5.sales.rolling(5).mean() - 1
+roll5.fillna(0, inplace=True)
+
+# Calculate the arrays for the chart
+xs = [0, 1, 2, 3, 4]
+heights = \
+    roll5[roll5.promo == 1].groupby('promo_last_5').uplift.mean().values
+# heights = [0.82869679, 0.40779873, 0.25214708, 0.14337502, -0.05382353]
+
+# Create and display the chart
 fig, ax = plt.subplots()
-
-ax.bar(x=['Non-promo', 'Promo'],
-       height=[avg_non_promo_sales, avg_promo_sales], color=['blue', 'green'])
-ax.set_title('Average Promo vs Non-Promo Sales')
-ax.set_ylabel('Avg Daily Sales')
-ax.set_yticklabels(['${:,.0f}'.format(x) for x in ax.get_yticks()])
-ax.set_xlabel('Promotion Status')
-
+ax.bar(x=xs, height=heights)
+ax.set_title('Consecutive Promotions are Less Effective')
+ax.set_xlabel('Number of Promotions Previous 5 Days')
+ax.set_ylabel('Average Sales Uplift on Promotion')
+ax.set_yticklabels(['{:3.0f}%'.format(x*100) for x in ax.get_yticks()])
 cd.display.pyplot(fig)
 
-
-cd.display.markdown(
-    """
-    ## Customers vs Promo by State
-    This incremental $2,000 for a promo appears roughly to hold
-    up by state. Below we're comparing non-promoted sales (in green) to
-    promoted sales (in blue); the colored horizontal lines indicate overall
-    averages. As we can see, promotions are very effective in each state, with
-    some slight differences.
-
-    In particular, the three states at the right of the chart below (SN, ST,
-    and TH) have below-average daily non-promoted sales (in green); their
-    promoted sales (in blue) are **more than $2,000 above** their average
-    non-promoted sales.
-
-    On the other hand, two of our top-performing non-promoted states ('HB,NI'
-    and HH) have average promoted sales that are **not quite** $2,000 more than
-    their non-promoted sales.
-
-    Our best-performing state (BE for Berlin, the capital of Germany) does best
-    in both non-promoted and promoted sales. This state does so well that it
-    even **out-performs the $2,000 average uplift** for a promotion.
-    """
-)
-
-avg_daily_promo_sales_by_state = \
-    open[open.promo == 1].groupby('state').sales.mean()
-avg_daily_non_promo_sales_by_state = \
-    open[open.promo == 0].groupby('state').sales.mean()
-
-fig, ax_l = plt.subplots()
-ax_r = ax_l.twinx()
-
-ax_l.bar(x=avg_daily_non_promo_sales_by_state.index,
-         height=avg_daily_non_promo_sales_by_state, color='green')
-ax_l.set_ylim([0, 10000])
-ax_r.bar(x=avg_daily_promo_sales_by_state.index,
-         height=avg_daily_promo_sales_by_state, color='blue',
-         alpha=0.2)
-ax_r.set_ylim([0, 10000])
-
-ax_l.set_title('Promo vs Non-Promo Sales by State')
-ax_l.set_ylabel('Avg Daily Non-Promo Sales (green)', color='green')
-ax_l.set_yticklabels(['${:,.0f}'.format(x) for x in ax_l.get_yticks()])
-ax_r.set_yticklabels(['${:,.0f}'.format(x) for x in ax_r.get_yticks()])
-ax_r.set_ylabel('Avg Daily Promo Sales (blue)', color='blue', alpha=0.4)
-ax_l.set_xlabel('State')
-ax_r.axhline(avg_daily_non_promo_sales_by_state.mean(),
-             color='green', linestyle='-')
-ax_l.axhline(avg_daily_promo_sales_by_state.mean(),
-             color='blue', linestyle='-')
-cd.display.pyplot(fig)
+# Export roll5 dataframe into Cauldron shared memory
+cd.shared.roll5 = roll5
