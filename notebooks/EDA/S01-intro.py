@@ -45,7 +45,7 @@ cd.display.markdown(
       an integer between 0 and 100 (actual low is 28).\n
     - The next 10 features are what they sound like, and we'll cover them
       later: **school_holiday**, **state_holiday**, **assortment**,
-      **store_type**, some promo things, some competition features, **state**,
+      **store_type**, some promo2 things, some competition features, **state**,
       **day_of_week**, and **week_start**.\n
     - The rest of the features are weather-related. For each day, in each
       state, we have 24 weather-related measurements.\n
@@ -59,12 +59,14 @@ df = pd.read_csv('../../data/processed/wrangled_dataframe.csv',
                  header=0, low_memory=False)
 df['date'] = pd.to_datetime(df['date'])
 df['week_start'] = pd.to_datetime(df['week_start'])
+df.replace('promo_interval', 'promo2_interval', inplace=True)
+df = df.rename(columns={'promo_interval': 'promo2_interval'})
 
 # Rearrange columns so that it's easier to see what's going on
 df = df[['store', 'date', 'sales', 'customers', 'open', 'promo', 'promo2',
          'trend', 'school_holiday', 'state_holiday', 'assortment',
-         'store_type', 'promo2_since_year', 'promo2_since_year',
-         'promo_interval', 'competition_distance',
+         'store_type', 'promo2_since_year', 'promo2_since_week',
+         'promo2_interval', 'competition_distance',
          'competition_open_since_year', 'competition_open_since_month',
          'state', 'day_of_week', 'week_start', 'max_visibility_km',
          'mean_visibility_km', 'min_visibility_km', 'mean_wind_speed_km_h',
