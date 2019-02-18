@@ -18,7 +18,7 @@ cd.display.markdown(
     ## Impact of Multiple Promos
 
     So if we can reliably get an **extra $2,000 in revenue** per store by
-    running a promotion, can we just run more promotions? Uh, maybe.
+    running a promotion, can we just run more promotions? It depends.
 
     Below we see the uplift of a promo over the last 5 days' sales, broken down
     by the number of promotions in the previous 5 days.
@@ -31,7 +31,8 @@ cd.display.markdown(
     a negative uplift (against the previous promoted days' sales).
 
     So, we see diminishing returns as we promote more intensely. Where the
-    appropriate cutoff is, would require additional cost/benefit analysis.
+    appropriate cutoff is, would require additional cost/benefit analysis (data
+    that we don't currently have).
     """
 )
 

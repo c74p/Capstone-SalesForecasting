@@ -18,7 +18,7 @@ cd.display.markdown(
     ## Sales vs Promo
 
     So let's look at **promo** vs **sales**; **promo** is one of the few things
-    that are under the business's control in this dataset.
+    that are squarely under the business's control in this dataset.
 
     Overall, sales at a store with a promotion are about $2,000 (33%) higher
     than sales at a store without a promotion.

@@ -25,11 +25,14 @@ cd.display.markdown(
 
     We don't know the specific definition of 'customer' in this case, or how
     they're counted.  Is it someone who bought, or just someone who came into
-    the store? In either case, we'll want to work with the marketing team to
-    bring more people through the doors.
+    the store? Do internet visitors/buyers count? In any case, we'll want to
+    work with the marketing team to bring more people through the doors
+    (virtual and physical).
 
-    For now, since the correlation with sales is so strong, let's continue to
-    focus on **sales** and keep **customers** as a secondary focus.
+    For now, since the correlation with sales is so strong, and since our
+    neural network model will manage the relationship between customers and
+    sales implicitly for us, let's continue to focus on **sales** and keep
+    **customers** as a secondary focus.
     """
 )
 

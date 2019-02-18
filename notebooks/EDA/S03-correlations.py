@@ -15,39 +15,32 @@ df = cd.shared.df
 
 cd.display.markdown(
     """
-    ## Correlation - other features vs sales
+    ## Correlation - features vs sales
 
     Let's get a quick handle on which variables correlate most strongly with
     sales.  (See the section below the chart for a brief explanation of
     correlation if you're not familiar with it.)
 
     A few takeaways from the below:\n
-    - **customers** has the strongest correlation with sales. **customers**
-    can be viewed as both an input and an output; strong promotions, pricing,
-    merchandising, etc. will both bring in more customers, and drive higher
-    revenue per customer.
-    - We can see that **promo** has a correlation with sales of
-    0.50, and **promo2** and **promo2_interval** have correlations with sales
-    around 0.10.
-    -- Unfortunately, we don't have much more information on pricing or
-    merchandising. Specifically, we have **assortment** (0.08 correlation with
-    sales) and **store_type** (-0.02 correlation with sales).
+    - **customers** has the strongest correlation with sales, at 0.9.
+    **customers** can be viewed as both an input and an output: strong pricing,
+    promotions, merchandising, and assortment will not only bring in more
+    customers, but will also drive higher revenue per customer.
+    - We can see that **promo** has a correlation with sales of 0.50, and
+    **promo2** and **promo2_interval** have correlations with sales around
+    -0.10.
+    - **trend** has a correlation with sales of 0.13. Like **customers**, this
+    variable could be viewed (though to a lesser degree) as both an input and
+    an output.
+    - We don't have great data on pricing, product, or merchandising that help
+    to explain our sales numbers. Specifically, we have **assortment** (0.08
+    correlation with sales) and **store_type** (-0.02 correlation with sales).
+    - While **competition_distance** and **competition_open_since_year** seem
+    like they should help us to evaluate the strength of our store locations
+    in some fashion, they have correlations of around 0.01.
 
-    Below are the correlation coefficients with each feature against sales, in
-    descending (absolute value) order.\n
-    - Somewhat obviously, **sales**, **customers**, and **open** have the
-      strongest linear relationships with sales.
-    - More interestingly, **promo** has a correlation with sales of 0.50.
-    - **day_of_week** has a correlation with sales of 0.44 (the absolute
-    value in this case is more interesting than the negative sign, as we'll
-    see).\n
-
-    No other feature has a higher linear correlation with sales than 0.15:\n
-    - The Google **trend**, **promo2**, and **school_holiday** are all around
-      0.10-0.13.
-    - The most strongly-correlated weather variable, **max_visibility_km**, has
-      a correlation with sales of 0.08. (The Google trend and weather features
-      are all recorded at the state level, not at a granular store level.)\n
+    The rest of the variables are essentially out of control of the business
+    (weather, state holidays, etc.).
     """
 )
 

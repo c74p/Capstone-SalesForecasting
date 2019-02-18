@@ -42,8 +42,8 @@ cd.display.markdown(
     things jump out:\n
     1. There was a huge year-end spike in December 2013 that we haven't seen
     replicated yet.
-    2. There was a huge dip in 2014.  As it turns out, a ton of stores were
-    temporarily closed in 2014 (including all 180 stores in Bavaria, for a
+    2. There was an enormous dip in 2014.  As it turns out, a ton of stores
+    were temporarily closed in 2014 (including all 180 stores in Bavaria, for a
     period of months). We'll get back to that later.
     3. Slightly less obvious, but just as important: 2015 sales are back on
     track, with each month's sales being above 2013 sales.  (The overall 2014

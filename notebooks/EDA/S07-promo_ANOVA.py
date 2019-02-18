@@ -72,6 +72,8 @@ cd.display.code_block(display_string)
 
 cd.display.markdown(
     """
+    Pretty convincing.
+
     While we're here, let's just double-check that the difference in overall
     promoted vs non-promoted sales -- the one that got us going down this path
     in the first place -- is real as well.

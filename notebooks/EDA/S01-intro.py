@@ -28,29 +28,26 @@ cd.display.markdown(
 
     Rossmann is a German retailer with 1,115 stores in 12 German states.
     Our task is to forecast sales at Rossmann stores over the course of six
-    weeks.
+    weeks. Our dataset contains 942 days (2013-01-01 to 2015-07-31) and 1,115
+    stores, so we have 942*1115 = 1,050,330 observations (rows of data).
 
-    We'll dig in as we go, but for now, here's a quick overview of what we've
-    got:\n
-    - **store** and **date**, our index features\n
-    - **sales**, our target variable\n
-    - **customers**: Number of customers at that store on that date\n
-    - **open**: Whether or not that store is open on that date\n
-    - **promo**: Whether or not that store had a promo on that date\n
+    We'll dig in as we go, but for now, here are the most important columns:\n
+    - **store** and **date**, our index features.
+    - **sales**, our target variable.
+    - **customers**: Number of customers at that store on that date.
+    - **open**: Whether or not that store is open on that date.
+    - **promo**: Whether or not that store had a promo on that date.
     - **promo2**: Whether or not that store takes part in a 'continuing and
       consecutive' promotion - maybe like a loyalty program. (We don't get much
-      detail here, but we'll dig in more later.)\n
+      detail here, but we'll dig in more later.)
     - **trend**: again not much detail here, but this appears to be the Google
       search trend for Rossmann in a particular state for the week. It's
-      an integer between 0 and 100 (actual low is 28).\n
-    - The next 10 features are what they sound like, and we'll cover them
-      later: **school_holiday**, **state_holiday**, **assortment**,
-      **store_type**, some promo2 things, some competition features, **state**,
-      **day_of_week**, and **week_start**.\n
-    - The rest of the features are weather-related. For each day, in each
-      state, we have 24 weather-related measurements.\n
-    - Since we have 1,115 stores and 942 days (from 2013-01-01 to 2015-07-31),
-      we have 1,115 * 942 = 1,050,330 observations (rows of data).
+      an integer between 28 and 100.
+    - We have other features covering holidays, store types, nearest
+      competitor, and weather.  We'll get to those later.
+
+    N.B. for notational convenience, we'll consider 'sales' to be denominated
+    in dollars.
     """
 )
 
