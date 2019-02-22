@@ -30,9 +30,7 @@ cd.display.markdown(
     At the extreme right, we see that a promo on a 5th consecutive day has
     a negative uplift (against the previous promoted days' sales).
 
-    So, we see diminishing returns as we promote more intensely. Where the
-    appropriate cutoff is, would require additional cost/benefit analysis (data
-    that we don't currently have).
+    So, we see diminishing returns as we promote more intensely.
     """
 )
 
@@ -63,6 +61,33 @@ ax.set_title('Consecutive Promotions are Less Effective')
 ax.set_xlabel('Number of Promotions Previous 5 Days')
 ax.set_ylabel('Average Sales Uplift on Promotion')
 ax.set_yticklabels(['{:3.0f}%'.format(x*100) for x in ax.get_yticks()])
+cd.display.pyplot(fig)
+
+cd.display.markdown(
+    """ ## Opportunities to Promote More
+    But are there opportunities to fit promotions in appropriately, without
+    killing our current sales and profitability?
+
+    Maybe.  Below we see that over 30% of store-days have no promotions in the
+    previous 5 days.
+
+    So it's possible that we might be able to slot in some more promotions,
+    with some finer analysis of the financials of promotions. This would
+    require additional detail and additional cost/benefit analysis (data
+    that we don't currently have).
+    """
+)
+
+avg_promo_last_5 = roll5[roll5.open == 1].groupby('promo_last_5').state.count()
+avg_promo_last_5 = avg_promo_last_5/len(roll5[roll5.open == 1])
+
+fig, ax = plt.subplots()
+ax.bar(x=avg_promo_last_5.index, height=avg_promo_last_5.values, width=0.15)
+ax.set_title('Total Promos in a 5-Day Span')
+ax.set_xlabel('Stores with # Promos, Rolling 5 Days')
+ax.set_ylabel('% of Total Open Days')
+ax.set_yticklabels(['{:3.0f}%'.format(y*100) for y in ax.get_yticks()])
+ax.set_xticklabels(['{:1.0f}'.format(x*5) for x in ax.get_xticks()])
 cd.display.pyplot(fig)
 
 # Export roll5 dataframe into Cauldron shared memory

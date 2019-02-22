@@ -29,7 +29,12 @@
       "title": "S06-promo2.py"
     },
     "S07-promo_ANOVA.py",
-    "S08-promo2.py"
+    "S08-promo2.py",
+    "S09-trend.py",
+    "S10-day_of_week.py",
+    "S11-state_holiday.py",
+    "S12-school_holiday.py",
+    "S13-assortment_store_type.py"
   ],
   "summary": "",
   "title": "EDA"

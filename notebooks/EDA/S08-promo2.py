@@ -7,6 +7,8 @@ import seaborn as sns
 sns.set() # NOQA, need this for styling
 import pandas as pd
 from scipy import stats
+import statsmodels.formula.api as sm
+
 
 import os, sys # NOQA
 sys.path.append('../../src/data')
@@ -91,18 +93,25 @@ cd.display.markdown(
     run **promo2** at all.
 
     First, there were 32 stores that started **promo2** the week of August 11,
-    2013. Below we see that the **promo2** stores have better performance after
-    **promo2** started, whereas the non-**promo2** stores did not, over a 15-
-    week period. It's a little hard to see visually, so beneath the chart are
-    the slopes of the regression line over the time period.
+    2013. Below we see that both groups of stores have sales declines over the
+    time period, but the **promo2** stores have better performance than the
+    non-**promo2** stores. In case it's hard to see visually, beneath the chart
+    are the slopes of the regression lines over the time period, along with the
+    results of a t-test of the difference in the regression lines.
+
+    The t-test results have a lot of detail, but here we're concerned about the
+    section labeled 'P>|t|'. If this is less than 0.05, we can say with 95%
+    confidence that the regression slopes are different - in other words, that
+    the promo2 stores have a sales uplift over this timeframe.
     """
 )
 
 # Prep the data for display
-promo2 = df[(df.date >= '2013-04-28') & (df.date <= '2013-11-24') &
-            (df.promo2 == 1)]
-non_promo2 = df[(df.date >= '2013-04-28') & (df.date <= '2013-11-24') &
-                (df.promo2 == 0)]
+open = df[df.open == 1]
+promo2 = open[(open.date >= '2013-04-28') & (open.date <= '2013-11-24') &
+              (open.promo2 == 1)]
+non_promo2 = open[(open.date >= '2013-04-28') & (open.date <= '2013-11-24') &
+                  (open.promo2 == 0)]
 avg_sales_by_promo2 = promo2.groupby('date').sales.mean()
 avg_sales_by_non_promo2 = non_promo2.groupby('date').sales.mean()
 
@@ -133,11 +142,16 @@ display_string = 'Two-sided T-test for means:\n'
 display_string += f'\t{round(a0, 4)}\n'
 display_string += f'\t{round(a1, 4)}\n'
 
-# Run t-test
-t_val, t_p_val = stats.ttest_ind(avg_sales_by_promo2, avg_sales_by_non_promo2)
+# Create new dataframe to run t-test on difference of regression slopes
+diff0 = pd.DataFrame(avg_sales_by_non_promo2 - avg_sales_by_promo2)
+diff0['ones'] = 1
+diff0['dates'] = np.array(range(211))
+Y = diff0['sales']
+X = diff0[['dates', 'ones']]
+result = sm.OLS(Y, X).fit()
 
 # Finalize and display
-display_string += f'T-val: {t_val}, p-val: {t_p_val}\n'
+display_string += str(result.t_test([1, 0]))
 cd.display.code_block(display_string)
 
 cd.display.markdown(
@@ -150,10 +164,10 @@ cd.display.markdown(
 )
 
 # Prep the data for display
-promo2 = df[(df.date >= '2013-11-24') & (df.date <= '2014-06-22') &
-            (df.promo2 == 1)]
-non_promo2 = df[(df.date >= '2013-11-24') & (df.date <= '2014-06-22') &
-                (df.promo2 == 0)]
+promo2 = open[(open.date >= '2013-11-24') & (open.date <= '2014-06-22') &
+              (open.promo2 == 1)]
+non_promo2 = open[(open.date >= '2013-11-24') & (open.date <= '2014-06-22') &
+                  (open.promo2 == 0)]
 avg_sales_by_promo2 = promo2.groupby('date').sales.mean()
 avg_sales_by_non_promo2 = non_promo2.groupby('date').sales.mean()
 
@@ -184,16 +198,24 @@ display_string = 'Two-sided T-test for means:\n'
 display_string += f'\t{round(a0, 4)}\n'
 display_string += f'\t{round(a1, 4)}\n'
 
-# Run t-test
-t_val, t_p_val = stats.ttest_ind(avg_sales_by_promo2, avg_sales_by_non_promo2)
+# Create new dataframe to run t-test on difference of regression slopes
+diff0 = pd.DataFrame(avg_sales_by_non_promo2 - avg_sales_by_promo2)
+diff0['ones'] = 1
+diff0['dates'] = np.array(range(211))
+Y = diff0['sales']
+X = diff0[['dates', 'ones']]
+result = sm.OLS(Y, X).fit()
 
 # Finalize and display
-display_string += f'T-val: {t_val}, p-val: {t_p_val}\n'
+display_string += str(result.t_test([1, 0]))
 cd.display.code_block(display_string)
 
 cd.display.markdown(
-    """Our p-values are less than 0.05 in both cases. This supports the
-    position that the differences in sales growth between **promo2** and non-
-    **promo2** stores is not due to random chance.
+    """Our p-values are greater than 0.05 in both cases. So although we can
+    say that directionally our promo2 stores appear to be doing better, the
+    analysis just run does not provide compelling evidence that promo2 is
+    better than doing nothing. We'll add promo2 to possible "future directions
+    for research" and, since we have many more variables to review, turn our
+    focus back to the EDA for sales.
     """
 )
