@@ -34,7 +34,10 @@
     "S10-day_of_week.py",
     "S11-state_holiday.py",
     "S12-school_holiday.py",
-    "S13-assortment_store_type.py"
+    "S13-assortment_store_type.py",
+    "S14-store_closings.py",
+    "S15-competition.py",
+    "S16-weather.py"
   ],
   "summary": "",
   "title": "EDA"

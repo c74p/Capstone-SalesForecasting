@@ -20,7 +20,7 @@ cd.display.markdown(
     Assortment has a correlation with sales of 0.08. The 'Extra' assortment has
     outstanding sales figures, but there are very few of them. The 'Extended'
     assortment has much better sales than the 'Basic' format, and there are
-    over 500 'Extended' stores in the Rossmann Germany business
+    over 500 'Extended' stores in the Rossmann Germany business.
     """
 )
 
