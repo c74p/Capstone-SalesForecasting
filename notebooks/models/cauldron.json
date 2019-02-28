@@ -1,0 +1,11 @@
+{
+  "author": "",
+  "id": "models",
+  "name": "models",
+  "naming_scheme": "S{{##}}-{{name}}.{{ext}}",
+  "steps": [
+    "S01-imports_and_prep.py"
+  ],
+  "summary": "",
+  "title": "Models"
+}
