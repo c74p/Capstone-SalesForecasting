@@ -4,7 +4,10 @@
   "name": "models",
   "naming_scheme": "S{{##}}-{{name}}.{{ext}}",
   "steps": [
-    "S01-imports_and_prep.py"
+    {
+      "name": "S01-imports_and_prep.py",
+      "title": "S01-imports_and_prep.py"
+    }
   ],
   "summary": "",
   "title": "Models"

@@ -7,10 +7,10 @@ from fastai.tabular import FloatList, TabularList, tabular_learner
 from functools import partial
 import io
 import matplotlib
-matplotlib.use('TkAgg') # NOQA, need this line for plotting            
+#matplotlib.use('TkAgg') # NOQA, need this line for plotting            
 import matplotlib.image as mpimg                                       
 import matplotlib.pyplot as plt                                        
-plt.ion() # NOQA, need this line for plotting                          
+#plt.ion() # NOQA, need this line for plotting                          
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -30,7 +30,7 @@ df = pd.read_csv(DATA_PATH/'train_valid_data.csv', low_memory=False)
 
 # Preprocess the dataframe and collect the args to pass to fastai library
 df = preprocess.preprocess(df)
-args = preprocess.get_args(df)
+args = preprocess.gather_args(df)
 
 # Validation set is just 80% of the whole thing
 valid_idx = range(int(0.8 * len(df)), len(df))
@@ -60,13 +60,13 @@ cd.display.markdown(
 )
 
 # Create and show the databunch
-data = (TabularList.from_df(df, path=args['path'], cat_names=['cat_names'],
+data = (TabularList.from_df(df, path=args['path'], cat_names=args['cat_names'],
                             cont_names=args['cont_names'], procs=args['procs'])
         .split_by_idx(valid_idx)
         .label_from_df(cols=args['dep_var'], label_cls=FloatList, log=True)
         .databunch())
 
-cd.display.table(data.show_batch())
+# cd.display.table(data.show_batch())
 
 
 learn = tabular_learner(data, layers=[100, 100], ps=[0.001, 0.01],
@@ -197,7 +197,7 @@ test_df = pd.read_csv(DATA_PATH/'test_data.csv', low_memory=False)
 
 # Preprocess the dataframe and collect the args to pass to fastai library
 test_df = preprocess.preprocess(test_df)
-test_args = preprocess.get_args(test_df)
+test_args = preprocess.gather_args(test_df)
 
 learn = load_learner(path=test_args['path'], fname=model_name,
                      test=TabularList.from_df(test_df, path=test_args['path']))
