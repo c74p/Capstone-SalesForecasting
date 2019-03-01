@@ -12,6 +12,9 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     Inputs: TODO
     Output: a dataframe to pass to .train() or .get_preds()
     """
+    # Sort by date since we have a timeseries
+    df.sort_values(by=['date', 'store'], inplace=True)
+
     # Drop week_start since add_datepart() will do that
     df.drop('week_start', axis='columns', inplace=True)
 

@@ -41,6 +41,7 @@ class Test_Preprocessing(TestCase):
     def test_preprocessing(self):
         """Test the preprocess() function from src/models/preprocess.py"""
         df = preprocess.preprocess(self.df)
+        assert (df == df.sort_values(by=['Elapsed', 'store'])).all().all()
         assert 'week_start' not in df.columns
         assert (len(df[df.sales == 0])) == 0
         for col in ['Year', 'Month', 'Week', 'Day', 'Dayofweek', 'Dayofyear',
