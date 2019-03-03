@@ -97,6 +97,8 @@ class Test_predict_model(TestCase):
         """Calling predict with test_value=0 should call
         preprocess.preprocess() and load_learner() with the correct path, and
         should result in an answer of exp(8.3232)."""
+        # TODO: either change the description of this test, or also mock out
+        # calls to preprocess.preprocess() and load_learner() as described above
         res = predict_model.predict(test_value=0)
         assert abs(float(res) - 4118.317561157504) < 0.01
 
@@ -104,11 +106,25 @@ class Test_predict_model(TestCase):
         """Calling predict with test_value=0 and context=True should call
         preprocess.preprocess() and load_learner() with the correct path, and
         should result in an answer of exp(8.3232), with appropriate context."""
+        # TODO: either change the description of this test, or also mock out
+        # calls to preprocess.preprocess() and load_learner() as described above
         res = predict_model.predict(test_value=0, context=True)
-        #assert abs(float(res) - 4118.317561157504) < 0.01
         assert res == ('The predicted value is 4118.318491197586 and the '
                       'actual value is 4097.0.')
                         
+    def test_correct_new_value_call_works(self):
+        """Calling predict with new_value=<example> should call
+        preprocess.preprocess() and load_learner() with the correct path, and
+        should result in an answer of exp(8.3232)."""
+        # TODO: either change the description of this test, or also mock out
+        # calls to preprocess.preprocess() and load_learner() as described above
+
+        # Fake a test_value from the existing 
+        #res = predict_model.predict(new_value=self.df)
+        df = pd.read_csv('../data/interim/test_data.csv', low_memory=False)
+        ex = df.iloc[0]
+        res = predict_model.predict(new_value=ex)
+        assert abs(float(res) - 4118.317561157504) < 0.01
 
 #def test_import_csvs_pulls_no_csvs_from_empty_directory(self):
         #"""Nothing should be returned from an empty directory"""

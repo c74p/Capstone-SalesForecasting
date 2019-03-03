@@ -36,33 +36,49 @@ def get_pred_single_val(data: pd.Series, path: Path) -> float:
 
     return prediction
 
-def predict(**kwargs) -> str:
-    """Get a prediction for a single value.
+def errors_in_kwargs(**kwargs) -> bool:
+    """Check for errors in the parameters passed to predict().
 
-    Input: see ERR_MSG above for required inputs.
+    Input: the **kwargs to predict()
+    Output: True if errors, False if no errors
+    """
+    # Exactly one of ('test_value', 'new_value') must be in kwargs
+    if ('test_value' not in kwargs and 'new_value' not in kwargs) or \
+        ('test_value' in kwargs and 'new_value' in kwargs):
+        return True
+
+    if 'test_value' in kwargs:
+        # Check boundaries
+        if (kwargs['test_value'] < MIN_TEST_VALUE) or \
+            (kwargs['test_value'] > MAX_TEST_VALUE):
+            return True
+
+    # If no errors, return False
+    return False
+
+
+def predict(**kwargs) -> str:
+    """Get a prediction for a single value and return it to the screen.
+
+    Input: see ERR_MSG above for required inputs and options.
     Output: if new_value is requested, the output (if not ERR_MSG) is a string
     containing simply the forecasted value. If test_value is requested by
     itself, the output is as for new_value. If test_value and context are
     requested, the output is a sentence explaining the test prediction and the
     actual value from the test dataset.
     """
-    # Exactly one of ('test_value', 'new_value') must be in kwargs
-    if ('test_value' not in kwargs and 'new_value' not in kwargs) or \
-        ('test_value' in kwargs and 'new_value' in kwargs):
+
+    if errors_in_kwargs(**kwargs):
         return ERR_MSG
 
     if 'test_value' in kwargs:
-
-        # Check boundaries
-        if (kwargs['test_value'] < MIN_TEST_VALUE) or \
-            (kwargs['test_value'] > MAX_TEST_VALUE):
-            return ERR_MSG
 
         try:
             # Get the test dataframe and process it
             test_df = pd.read_csv(DATA_PATH/'test_data.csv', low_memory=False)
             test_df = preprocess.preprocess(test_df)
 
+            # Get our example row and get the prediction from it
             example = test_df.iloc[kwargs['test_value']]
             prediction = get_pred_single_val(example, MODELS_PATH)
 
@@ -74,3 +90,18 @@ def predict(**kwargs) -> str:
 
         except:
             return ERR_MSG
+
+    if 'new_value' in kwargs:
+
+        # try
+        # TODO put that back in later
+        series = kwargs['new_value']
+        df = pd.DataFrame(series)
+        df = preprocess.preprocess(df)
+        #series = preprocess.preprocess(series)
+        #print(series)
+        #print(series.school_holiday)
+        #prediction = get_pred_single_val(series, MODELS_PATH)
+        prediction = get_pred_single_val(df[0], MODELS_PATH)
+
+        return prediction

@@ -16,6 +16,8 @@ def preprocess(inp_df: pd.DataFrame) -> pd.DataFrame:
     df = inp_df.copy()
 
     # Sort by date since we have a timeseries
+    #TODO remove the print
+    print(df)
     df.sort_values(by=['date', 'store'], inplace=True)
 
     # Drop week_start since add_datepart() will do that
