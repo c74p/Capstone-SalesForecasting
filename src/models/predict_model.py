@@ -33,26 +33,34 @@ def predict(**kwargs):
         ('test_value' in kwargs and 'new_value' in kwargs):
         return ERR_MSG
 
-    # If test_value, check boundaries and get test value
-    if (kwargs['test_value'] < MIN_TEST_VALUE) or \
-        (kwargs['test_value'] > MAX_TEST_VALUE):
-        return ERR_MSG
+    if 'test_value' in kwargs:
 
-    #try:
-    # Get the test dataframe and process it
-    test_df = pd.read_csv(DATA_PATH/'test_data.csv', low_memory=False)
-    test_df = preprocess.preprocess(test_df)
+        # Check boundaries
+        if (kwargs['test_value'] < MIN_TEST_VALUE) or \
+            (kwargs['test_value'] > MAX_TEST_VALUE):
+            return ERR_MSG
 
-    # Load the model and get the prediction
-    learn = load_learner(MODELS_PATH)
-    example = test_df.iloc[kwargs['test_value']]
-    # TODO
-    log_pred_tens, = learn.predict(example)
+        try:
+            # Get the test dataframe and process it
+            test_df = pd.read_csv(DATA_PATH/'test_data.csv', low_memory=False)
+            test_df = preprocess.preprocess(test_df)
 
-    # Remember the model gives log predictions, so we need to exp it
-    prediction = math.exp(log_pred)
+            # Load the model and get the prediction
+            learn = load_learner(MODELS_PATH)
+            example = test_df.iloc[kwargs['test_value']]
+            log_pred_tens, _, _ = learn.predict(example)
 
-    return prediction
+            # The model returns a tensor (Float [x]) so we need to get x
+            log_pred = log_pred_tens.data[0]
 
-    #except:
-        #return ERR_MSG
+            # Also it gives log predictions, so we need to exp it
+            prediction = math.exp(log_pred)
+
+            if 'context' in kwargs and kwargs['context'] == True:
+                return ('The predicted value is ' + str(prediction) + ' and '
+                        'the actual value is ' + str(example.sales) + '.')
+            else:
+                return prediction
+
+        except:
+            return ERR_MSG

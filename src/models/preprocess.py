@@ -4,7 +4,7 @@ import pandas as pd
 from pathlib import Path
 from typing import Any, Dict
 
-def preprocess(df: pd.DataFrame) -> pd.DataFrame:
+def preprocess(inp_df: pd.DataFrame) -> pd.DataFrame:
     """Preprocess the dataframe for modeling. The data, along with the data
     from the gather_args() function will get passed to either the training or
     prediction method.
@@ -12,6 +12,9 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     Inputs: TODO
     Output: a dataframe to pass to .train() or .get_preds()
     """
+
+    df = inp_df.copy()
+
     # Sort by date since we have a timeseries
     df.sort_values(by=['date', 'store'], inplace=True)
 

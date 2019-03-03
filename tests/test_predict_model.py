@@ -96,9 +96,19 @@ class Test_predict_model(TestCase):
     def test_correct_test_value_call_works(self):
         """Calling predict with test_value=0 should call
         preprocess.preprocess() and load_learner() with the correct path, and
-        should result in an answer of 4097."""
+        should result in an answer of exp(8.3232)."""
         res = predict_model.predict(test_value=0)
-        assert res == "4097"
+        assert abs(float(res) - 4118.317561157504) < 0.01
+
+    def test_correct_test_value_call_with_context_works(self):
+        """Calling predict with test_value=0 and context=True should call
+        preprocess.preprocess() and load_learner() with the correct path, and
+        should result in an answer of exp(8.3232), with appropriate context."""
+        res = predict_model.predict(test_value=0, context=True)
+        #assert abs(float(res) - 4118.317561157504) < 0.01
+        assert res == ('The predicted value is 4118.318491197586 and the '
+                      'actual value is 4097.0.')
+                        
 
 #def test_import_csvs_pulls_no_csvs_from_empty_directory(self):
         #"""Nothing should be returned from an empty directory"""
