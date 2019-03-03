@@ -18,7 +18,25 @@ ERR_MSG = \
 MAX_TEST_VALUE=41608
 MIN_TEST_VALUE=0
 
-def predict(**kwargs):
+def get_pred_single_val(data: pd.Series, path: Path) -> float:
+    """Get a prediction for a single row of data.
+
+    Input: a pd.Series for the data and the path for the model.
+    Output: the predicted sales for that row of data.
+    """
+    # Load the model and get the prediction
+    learn = load_learner(path)
+    log_pred_tens, _, _ = learn.predict(data)
+
+    # The model returns a tensor (Float [x]) so we need to get x
+    log_pred = log_pred_tens.data[0]
+
+    # Also it gives log predictions, so we need to exp it
+    prediction = math.exp(log_pred)
+
+    return prediction
+
+def predict(**kwargs) -> str:
     """Get a prediction for a single value.
 
     Input: see ERR_MSG above for required inputs.
@@ -45,16 +63,8 @@ def predict(**kwargs):
             test_df = pd.read_csv(DATA_PATH/'test_data.csv', low_memory=False)
             test_df = preprocess.preprocess(test_df)
 
-            # Load the model and get the prediction
-            learn = load_learner(MODELS_PATH)
             example = test_df.iloc[kwargs['test_value']]
-            log_pred_tens, _, _ = learn.predict(example)
-
-            # The model returns a tensor (Float [x]) so we need to get x
-            log_pred = log_pred_tens.data[0]
-
-            # Also it gives log predictions, so we need to exp it
-            prediction = math.exp(log_pred)
+            prediction = get_pred_single_val(example, MODELS_PATH)
 
             if 'context' in kwargs and kwargs['context'] == True:
                 return ('The predicted value is ' + str(prediction) + ' and '
