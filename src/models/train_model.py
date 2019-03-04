@@ -1,4 +1,5 @@
-from fastai.tabular import *
+from fastai.basic_train import Learner, load_learner
+from fastai.tabular import DatasetType, TabularList
 import math
 import numpy as np
 import pandas as pd
@@ -32,11 +33,17 @@ def get_pred_new_data_old_model(valid_df: pd.DataFrame, path: Path) -> float:
     Output: the root mean squared percentage error for the predicted sales.
     """
     valid_df = preprocess.preprocess(valid_df)
+    print('about to call load_learner')
     learn = load_learner(MODELS_PATH,
                          test=TabularList.from_df(valid_df, path=MODELS_PATH))
 
+    print(learn)
     # get log predictions and compare to actual values
+    print('about to call get_preds')
+    print(learn.get_preds)
+    print(learn.get_preds(ds_type=DatasetType.Test))
     log_preds, _ = learn.get_preds(ds_type=DatasetType.Test)
     valid_preds = np.exp(np.array(log_preds.flatten()))
     valid_reals = valid_df.loc[valid_df.sales != 0, 'sales'].values
+    print('about to call rmspe')
     return rmspe(valid_preds, valid_reals)
