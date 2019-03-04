@@ -1,5 +1,7 @@
+from fastai.tabular import *
 from hypothesis import given, example
 from hypothesis.strategies import text
+import numpy as np
 import pandas as pd
 from pathlib import Path
 import pytest
@@ -8,7 +10,7 @@ from unittest import TestCase, mock
 import sys, os # NOQA
 THIS_PATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, THIS_PATH + '/../')
-from src.models import predict_model # NOQA
+from src.models import preprocess, train_model # NOQA
 
 # This is the test file for the src/models/train_model.py file.
 
@@ -24,50 +26,16 @@ class Test_train_model(TestCase):
 
     def setUp(self):
 
-        # Config dataframe example
-        # This can be used to simulate a run with the '-test_value'
-        # command-line option, or with the '-new_value' option
-        self.df =\
-            pd.DataFrame(columns=['store', 'state', 'date',
-                                  'max_temperature_c', 'mean_temperature_c',
-                                  'min_temperature_c', 'dew_point_c',
-                                  'mean_dew_point_c', 'min_dew_point_c',
-                                  'max_humidity', 'mean_humidity',
-                                  'min_humidity', 'max_sea_level_pressureh_pa',
-                                  'mean_sea_level_pressureh_pa',
-                                  'min_sea_level_pressureh_pa',
-                                  'max_visibility_km', 'mean_visibility_km',
-                                  'min_visibility_km', 'max_wind_speed_km_h',
-                                  'mean_wind_speed_km_h',
-                                  'max_gust_speed_km_h', 'precipitationmm',
-                                  'cloud_cover', 'events', 'wind_dir_degrees',
-                                  'store_type', 'assortment',
-                                  'competition_distance',
-                                  'competition_open_since_month',
-                                  'competition_open_since_year', 'promo2',
-                                  'promo2_since_week', 'promo2_since_year',
-                                  'promo_interval', 'day_of_week', 'sales',
-                                  'customers', 'open', 'promo',
-                                  'state_holiday', 'school_holiday',
-                                  'trend', 'week_start'],
-                         data=[[1, 'HE', '2015-06-20', 17, 14, 11, 9, 7, 5, 88, 64,
-                                37, 1021, 1020, 1018, 31.0, 11.0, 10.0, 21, 13,
-                                40.0, 0.0, 6.0, 'Rain', 290, 'c', 'a', 1270.0, 9.0,
-                                2008.0, 0, 23.595446584938703,
-                                2011.7635726795095, 'None', 5, 4097.0, 494.0,
-                                1.0, 0.0, 0, 0.0, 85, '2015-06-14']])
-
         # Error message for an incorrect call to predict()
         self.ERR_MSG = \
-        """USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <="""
-        """41608\n An optional flag of '-context' will also"""
-        """provide the actual value for comparison.\n Option 2: """
-        """-new_value=<FILENAME> where <FILENAME> is a .csv file"""
-        """in data/interim/ with a header and a single row of"""
-        """data."""
+        """USAGE: \n update-model=[<train>, <valid>] where <train> and <valid>
+        are path names to train and validation sets."""
 
         # Data path for the test data
-        self.TEST_DATA_PATH = Path('../data/interim/test_data.csv')
+        # I recognize these file names and PATH_NAMES are kind of contradictory
+        self.TRAIN_DATA_PATH = Path('../data/interim/train_valid_data.csv')
+        self.VALID_DATA_PATH = Path('../data/interim/test_data.csv')
+        self.valid_df = pd.read_csv(self.VALID_DATA_PATH, low_memory=False)
 
         # Path for the models
         self.MODEL_PATH = Path('../models')
@@ -75,52 +43,23 @@ class Test_train_model(TestCase):
     def tearDown(self):
         pass
 
-    def test_no_parameters_gets_error_message(self):
-        """The 'predict' option should either be called with the 'test_value=
-        <INT>' flag, or with the 'new_value=<FILENAME>' flag"""
-        res = predict_model.predict()
-        assert res == self.ERR_MSG
+    def test_rmspe(self):
+        """Here are some hard-coded values, rather than generated, for speed"""
+        assert train_model.rmspe(np.array([0]), np.array([1])) == 1
+        assert train_model.rmspe(np.array([0.25]), np.array([1])) == 0.75
+        assert train_model.rmspe(np.array([0.5]), np.array([1])) == 0.5
+        assert train_model.rmspe(np.array([0.75]), np.array([1])) == 0.25
+        assert train_model.rmspe(np.array([1]), np.array([0])) == np.inf
 
-    def test_both_parameters_gets_error_message(self):
-        """The 'predict' option should either be called with the 'test_value=
-        <INT>' flag, or with the 'new_value=<FILENAME>' flag - but not both"""
-        res = predict_model.predict(test_value=42, new_value='fake_file.csv')
-        assert res == self.ERR_MSG
-
-    def test_test_value_oob_gets_error_message(self):
-        """The 'predict' option with the 'test_value=<INT>' flag requires that
-        <INT> be between 0 and 41608."""
-        res = predict_model.predict(test_value=-1)
-        assert res == self.ERR_MSG
-        res = predict_model.predict(test_value=41609)
-        assert res == self.ERR_MSG
-
-    def test_correct_test_value_call_works(self):
-        """Dumb reference test: calling predict with test_value=0 should 
-        result in an answer of exp(8.3232). TODO: consider mocking the
-        calls to preprocess.preprocess() and load_learner(); might be
-        faster."""
-        res = predict_model.predict(test_value=0)
-        assert abs(float(res) - 4118.317561157504) < 0.01
-
-    def test_correct_test_value_call_with_context_works(self):
-        """Dumb reference test: calling predict with test_value=0 and
-        context=True should result in an answer of exp(8.3232), with
-        appropriate context. TODO: consider mocking out the calls to
-        preprocess.preprocess() and load_learner(); might be faster."""
-        res = predict_model.predict(test_value=0, context=True)
-        assert res == ('The predicted value is 4118.318491197586 and the '
-                      'actual value is 4097.0.')
-                        
-    def test_correct_new_value_call_works(self):
-        """Dumb reference test: calling predict with new_value=<example>
-        should result in an answer of exp(8.3232). TODO: consider mocking
-        out the calls to preprocess.preprocess() and load_learner(); might be
-        faster."""
-        # Fake a test_value from the existing pre-made dataframe
-        # Use .iloc[0] to make sure we're using a Series per expectations
-        res = predict_model.predict(new_value=self.df.iloc[0])
-        assert abs(float(res) - 4118.317561157504) < 0.01
+    def test_get_pred_new_data_old_model(self):
+        """The old model should be pulled in, the new data preprocessed, and
+        the accuracy of the old model gauged by the new data vs actuals.
+        """
+        # First test the actual results (will have to throw this out or update
+        # later when the test gets updated)
+        res = train_model.get_pred_new_data_old_model(self.valid_df,
+                                                      self.MODEL_PATH)
+        assert abs(res - 0.048635791657389196) < 0.001
 
 #def test_import_csvs_pulls_no_csvs_from_empty_directory(self):
         #"""Nothing should be returned from an empty directory"""
