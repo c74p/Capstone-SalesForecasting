@@ -94,15 +94,15 @@ def predict(**kwargs) -> str:
 
     if 'new_value' in kwargs:
 
-        # try
-        # TODO put that back in later
-        series = kwargs['new_value']
-        print(series)
-        print(type(series))
+        try:
+            series = kwargs['new_value']
 
-        # Convert our series to a dataframe so we can process it
-        df = series.to_frame().T
-        df = preprocess.preprocess(df)
-        prediction = get_pred_single_val(df.iloc[0], MODELS_PATH)
+            # Convert our series to a dataframe so we can process it
+            df = series.to_frame().T
+            df = preprocess.preprocess(df)
+            prediction = get_pred_single_val(df.iloc[0], MODELS_PATH)
 
-        return prediction
+            return prediction
+
+        except:
+            return ERR_MSG

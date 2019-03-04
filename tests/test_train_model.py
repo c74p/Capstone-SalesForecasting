@@ -119,3 +119,11 @@ class Test_predict_model(TestCase):
         # Use .iloc[0] to make sure we're using a Series per expectations
         res = predict_model.predict(new_value=self.df.iloc[0])
         assert abs(float(res) - 4118.317561157504) < 0.01
+
+#def test_import_csvs_pulls_no_csvs_from_empty_directory(self):
+        #"""Nothing should be returned from an empty directory"""
+        #with mock.patch('os.listdir', return_value=self.fake_empty_files):
+            #with mock.patch('pandas.read_csv',
+                            #side_effect=self.fake_empty_read):
+                #read = make_dataset.import_csvs('bogus_dir')
+                #assert read == {}

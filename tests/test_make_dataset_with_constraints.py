@@ -241,8 +241,6 @@ class test_Merge_Csvs(TestCase):
         assert df.max_sea_level_pressureh_pa.dtype == 'int64'
         assert df.mean_sea_level_pressureh_pa.dtype == 'int64'
         assert df.min_sea_level_pressureh_pa.dtype == 'int64'
-        # EDIT Remove this comment at the end if everything passes
-        # Note this is goofy
         assert df.max_visibility_km.dtype == 'float64'
         assert df.mean_visibility_km.dtype == 'float64'
         assert df.min_visibility_km.dtype == 'float64'

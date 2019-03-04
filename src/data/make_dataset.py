@@ -155,18 +155,18 @@ def clean_weather_csv(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-# EDIT Update the type signature once the function has been changed to only
-# return a dataframe
 def merge_dfs(raw_dfs_dict: Dict[str, pd.DataFrame]) -> \
              (pd.DataFrame, Dict[str, pd.DataFrame]):
     """Merge the csvs from import_csvs into a single pd.DataFrame.
 
-    - dfs_dict: a dictionary of dataframes keyed by name.
+    - Input: a dictionary of dataframes keyed by name.
         - The reference implementation has dataframes generated from the
           following files in /data/raw/: 'googletrend.csv', 'state_names.csv',
           'store.csv', 'store_states.csv', 'train.csv', 'weather.csv'
         - All of these files must exist and have at least one row with no
           NaN values.
+    - Output: a combined dataframe and dictionary of dataframes from which it
+      was constructed.
     """
 
     # List out the dfs available, and make copies of all dfs
