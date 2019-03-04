@@ -9,22 +9,25 @@ def preprocess(inp_df: pd.DataFrame) -> pd.DataFrame:
     from the gather_args() function will get passed to either the training or
     prediction method.
 
-    Inputs: TODO
-    Output: a dataframe to pass to .train() or .get_preds()
+    Inputs: a raw dataframe
+    Output: a processed dataframe to pass to .train() or .get_preds()
     """
 
     df = inp_df.copy()
 
     # Sort by date since we have a timeseries
-    #TODO remove the print
-    print(df)
     df.sort_values(by=['date', 'store'], inplace=True)
 
     # Drop week_start since add_datepart() will do that
     df.drop('week_start', axis='columns', inplace=True)
 
-    # Drop any sales == 0 since they'll mess up rmspe (div by zero)
-    df = df[df.sales != 0]
+    # If our whole df has sales == 0, it must be a single-row df used for a
+    # single prediction, so just take the first row
+    if (df.sales == 0).all():
+        df = df.iloc[0]
+    else:
+        # Drop any sales == 0 since they'll mess up rmspe (div by zero)
+        df = df[df.sales != 0]
 
     tabular.add_datepart(df, 'date', drop=True, time=False)
 

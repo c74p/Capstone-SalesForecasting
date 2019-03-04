@@ -26,6 +26,7 @@ def get_pred_single_val(data: pd.Series, path: Path) -> float:
     """
     # Load the model and get the prediction
     learn = load_learner(path)
+
     log_pred_tens, _, _ = learn.predict(data)
 
     # The model returns a tensor (Float [x]) so we need to get x
@@ -96,12 +97,12 @@ def predict(**kwargs) -> str:
         # try
         # TODO put that back in later
         series = kwargs['new_value']
-        df = pd.DataFrame(series)
+        print(series)
+        print(type(series))
+
+        # Convert our series to a dataframe so we can process it
+        df = series.to_frame().T
         df = preprocess.preprocess(df)
-        #series = preprocess.preprocess(series)
-        #print(series)
-        #print(series.school_holiday)
-        #prediction = get_pred_single_val(series, MODELS_PATH)
-        prediction = get_pred_single_val(df[0], MODELS_PATH)
+        prediction = get_pred_single_val(df.iloc[0], MODELS_PATH)
 
         return prediction
