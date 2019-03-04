@@ -106,17 +106,34 @@ class Test_train_model(TestCase):
         assert abs(res - 0.048635791657389196) < 0.001
 
 
-    #@patch('fastai.tabular.load_learner')
-    @patch('src.models.train_model.Learner.get_preds', return_value=(np.array([1,1,1]),1))
-    @patch('src.models.train_model.rmspe', return_value=1, side_effect=print('rmspe'))
-    def test_get_pred_new_data_old_model2(self, mock_rmspe, mock_gp):
-        """The old model should be pulled in, and the accuracy of the old
+    @patch('src.models.preprocess.preprocess')
+    @patch('src.models.train_model.load_learner')
+    def test_get_pred_new_data_old_model_calls_pt1(self, mock_load_learner,
+                                                   mock_preprocess):
+        """Calling this in parts to avoid having to make a complicated mock.
+        The old model should be pulled in, and the accuracy of the old
         model gauged by the new data vs actuals.
         """
-        res = train_model.get_pred_new_data_old_model(self.valid_df,
+        with self.assertRaises(ValueError):
+        # It raises because we don't pass enough info to 'learn' to call
+        # .get_preds() - that's why this test is split into two parts
+            res = train_model.get_pred_new_data_old_model(self.df,
+                                                          self.MODEL_PATH)
+        assert mock_preprocess.called
+        assert mock_load_learner.called
+
+    @patch('src.models.train_model.Learner.get_preds',
+           return_value=(np.array([1,1,1]),1))
+    @patch('src.models.train_model.rmspe', return_value=1)
+    def test_get_pred_new_data_old_model_calls_pt2(self, mock_rmspe,
+                                                   mock_get_preds):
+        """Calling this in parts to avoid having to make a complicated mock.
+        The old model should be pulled in, and the accuracy of the old
+        model gauged by the new data vs actuals.
+        """
+        res = train_model.get_pred_new_data_old_model(self.df,
                                                       self.MODEL_PATH)
-        #assert mock_load_learner.called
-        assert mock_gp.called
+        assert mock_get_preds.called
         assert mock_rmspe.called
 
 #def test_import_csvs_pulls_no_csvs_from_empty_directory(self):
