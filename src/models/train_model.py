@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from src.models import preprocess
+from typing import Any, List, Tuple
 
 DATA_PATH = Path('../data/interim')
 MODELS_PATH = Path('../models/')
@@ -32,12 +33,15 @@ def rmspe(predicted: np.array, actual: np.array) -> float:
     return np.sqrt((((actual - predicted)/actual)**2).sum()/len(actual))
 
 
-def get_pred_new_data_old_model(valid_df: pd.DataFrame, path: Path) -> float:
+def get_pred_new_data_old_model(valid_df: pd.DataFrame,
+                                path: Path) -> Tuple[Learner, float]:
     """Get a RSMPE score for predictions from the existing best model, with
     new data.
 
     Input: a pd.DataFrame for the validation data and the path for the model.
-    Output: the root mean squared percentage error for the predicted sales.
+    Output: the model ready to save, and the root mean squared percentage error
+    for the predicted sales. (If this model is second-best, we'll still want
+    to save it to a different file for record-keeping purposes.)
     """
     valid_df = preprocess.preprocess(valid_df)
     learn = load_learner(path, test=TabularList.from_df(valid_df, path=path))
@@ -46,11 +50,18 @@ def get_pred_new_data_old_model(valid_df: pd.DataFrame, path: Path) -> float:
     log_preds, _ = learn.get_preds(ds_type=DatasetType.Test)
     valid_preds = np.exp(np.array(log_preds.flatten()))
     valid_reals = valid_df.loc[valid_df.sales != 0, 'sales'].values
-    return rmspe(valid_preds, valid_reals)
+    new_rmspe = rmspe(valid_preds, valid_reals)
+    return (learn, new_rmspe)
 
-def get_pred_new_model(train_df: pd.DataFrame, valid_df: pd.DataFrame,
-                       path: Path) -> float:
-    """TODO
+
+def get_new_model_and_pred(train_df: pd.DataFrame, valid_df: pd.DataFrame,
+                           path: Path) -> Tuple[Learner, float]:
+    """Take new train and validation dataframes, re-run the model, and return
+    the model and its root mean squared percentage error.
+
+    Input: the train dataframe, the validation dataframe, and the path for the
+    models to be saved.
+    Output: the model (ready to save if better than the old one) and its rmspe.
     """
 
     # Put the dataframes together and process, with valid_idx just being the
@@ -71,7 +82,7 @@ def get_pred_new_model(train_df: pd.DataFrame, valid_df: pd.DataFrame,
 
     # Create a learner
     # Let's construct the learner from scratch here, in case we want to change
-    # the architecture later (we can and should - this is very basic atm)
+    # the architecture later (we can and should - this is very basic)
     learn = tabular_learner(data, layers=[100, 100], ps=[0.001, 0.01],
                             emb_drop=0.01, metrics=exp_rmspe, y_range=None,
                             callback_fns=[partial(callbacks.tracker.
@@ -100,5 +111,20 @@ def get_pred_new_model(train_df: pd.DataFrame, valid_df: pd.DataFrame,
     # Also, since we have the early-stopping callback with the save-model
     # callback set to 'every=improvement', we'll run 10 cycles even though we
     # probably won't need nearly that many
-    print(learn.fit_one_cycle)
     learn.fit_one_cycle(cyc_len=10, max_lr=1e-3)
+
+    # Get our predictions from the model and calculate rmspe
+    log_preds, log_reals = learn.get_preds(ds_type=DatasetType.Valid)
+    preds = np.exp(log_preds).flatten()
+    reals = np.exp(log_reals)
+    new_rmspe = rmspe(preds, reals)
+    return (learn, new_rmspe)
+
+
+def compare_rmspes(model0, rmspe0, model1, rmspe1):
+    """Compare the rmspes of the two models and return them in order.
+
+    Input: the two models and their rmspes.
+    Output: A list of the the models to be saved, in order best to worst.
+    """
+    pass

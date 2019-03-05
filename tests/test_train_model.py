@@ -98,8 +98,8 @@ class TestTrainModel(TestCase):
         """
         # First test the actual results (will have to throw this out or update
         # later when the test gets updated)
-        res = train_model.get_pred_new_data_old_model(self.valid_df,
-                                                      self.model_path)
+        _, res = train_model.get_pred_new_data_old_model(self.valid_df,
+                                                         self.model_path)
         assert abs(res - 0.048635791657389196) < 0.001
 
     @patch('src.models.preprocess.preprocess')
@@ -119,7 +119,7 @@ class TestTrainModel(TestCase):
 
     @patch('src.models.train_model.Learner.get_preds',
            return_value=(np.array([1, 1, 1]), 1))
-    @patch('src.models.train_model.rmspe', return_value=1)
+    @patch('src.models.train_model.rmspe')
     def test_get_pred_new_data_old_model_calls_pt2(self, mock_rmspe,
                                                    mock_get_preds):
         """Calling this in parts to avoid having to make a complicated mock.
@@ -134,44 +134,35 @@ class TestTrainModel(TestCase):
     @patch('src.models.preprocess.gather_args')
     @patch('src.models.train_model.TabularList')
     @patch('src.models.train_model.tabular_learner')
-    #@patch('src.models.train_model.fit_one_cycle')
-    def test_get_pred_new_model_calls_pt1(self, # mock_fit_one_cycle,
-                                          mock_tabular_learner,
+    def test_get_pred_new_model_calls_pt1(self, mock_tabular_learner,
                                           mock_tabular_list,
                                           mock_gather_args, mock_preprocess):
-        """Calling this in parts to avoid having to make a complicated mock.
-        The data should be processed, the model run, and the new accuracy
+        """The data should be processed, the model run, and the new accuracy
         calculated.
         """
-        df1 = self.df.copy()
-        #train_model.get_pred_new_model(train_df=self.df[:2],
-        #                               valid_df=self.df[2:],
-        train_model.get_pred_new_model(train_df=df1[:2],
-                                       valid_df=df1[2:],
-                                       path=self.model_path)
+        with self.assertRaises(ValueError):
+            # It raises because we don't pass enough info to 'learn' to call
+            # .get_preds()
+            train_model.get_new_model_and_pred(train_df=self.df[:2],
+                                               valid_df=self.df[2:],
+                                               path=self.model_path)
         assert mock_preprocess.called
         assert mock_gather_args.called
         assert mock_tabular_list.from_df.called
-        assert mock_tabular_learner.fit_one_cycle.called
-        # TODO edit these if needed and lines 15-16 rows above
-        assert mock_fit_one_cycle.called
-        # assert False
+        assert mock_tabular_learner.called
 
-    # @patch('src.models.train_model.fit_one_cycle')
-    # def test_get_pred_new_model_calls_pt2(self, mock_fit_one_cycle):
-    # def test_get_pred_new_model_calls_pt2(self):
-        """Calling this in parts to avoid having to make a complicated mock.
-        The data should be processed, the model run, and the new accuracy
-        calculated.
+    @pytest.mark.this
+    def test_compare_rmspes(self):
+        """compare_rmspes should compare the rmspes of the two models and return
+        them in order.
         """
-        # df2 = self.df.copy()
-        #train_model.get_pred_new_model(train_df=self.df[:2],
-        #                               valid_df=self.df[2:],
-        # train_model.get_pred_new_model(train_df=df2[:2],
-        #                                valid_df=df2[2:],
-        #                                path=self.model_path)
-        # assert mock_fit_one_cycle.called
-        # assert False
+        winner = ('winner', 0.10)
+        loser = ('loser', 0.50)
+
+        # Note that in this test we're abusing the fact that Python has no real
+        # type checker. In the real code, we're passing models, not strings.
+        assert train_model.compare_rmspes(winner[0], winner[1], loser[0],
+                                          loser[1]) == ['winner', 'loser']
 
 # def test_import_csvs_pulls_no_csvs_from_empty_directory(self):
 # """Nothing should be returned from an empty directory"""

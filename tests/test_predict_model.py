@@ -12,12 +12,12 @@ from src.models import predict_model # NOQA
 
 # This is the test file for the src/models/predict_model.py file.
 
-#pd.set_option('mode.chained_assignment', 'raise')  # Chained assmt = Exception
+# pd.set_option('mode.chained_assignment', 'raise')  # Chained assmt=Exception
 
 PROJ_ROOT = Path('..')
 
 
-class Test_predict_model(TestCase):
+class TestPredictModel(TestCase):
     """Test the steps needed to make a prediction from the existing model."""
 
     def setUp(self):
@@ -48,27 +48,27 @@ class Test_predict_model(TestCase):
                                   'customers', 'open', 'promo',
                                   'state_holiday', 'school_holiday',
                                   'trend', 'week_start'],
-                         data=[[1, 'HE', '2015-06-20', 17, 14, 11, 9, 7, 5, 88, 64,
-                                37, 1021, 1020, 1018, 31.0, 11.0, 10.0, 21, 13,
-                                40.0, 0.0, 6.0, 'Rain', 290, 'c', 'a', 1270.0, 9.0,
-                                2008.0, 0, 23.595446584938703,
+                         data=[[1, 'HE', '2015-06-20', 17, 14, 11, 9, 7, 5, 88,
+                                64, 37, 1021, 1020, 1018, 31.0, 11.0, 10.0, 21,
+                                13, 40.0, 0.0, 6.0, 'Rain', 290, 'c', 'a',
+                                1270.0, 9.0, 2008.0, 0, 23.595446584938703,
                                 2011.7635726795095, 'None', 5, 4097.0, 494.0,
                                 1.0, 0.0, 0, 0.0, 85, '2015-06-14']])
 
         # Error message for an incorrect call to predict()
-        self.ERR_MSG = \
-        """USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <="""
-        """41608\n An optional flag of '-context' will also"""
-        """provide the actual value for comparison.\n Option 2: """
-        """-new_value=<FILENAME> where <FILENAME> is a .csv file"""
-        """in data/interim/ with a header and a single row of"""
-        """data."""
+        self.err_msg = \
+            """USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <= 41608
+            \n An optional flag of '-context' will also
+            provide the actual value for comparison.\n Option 2:
+            new_value=<FILENAME> where <FILENAME> is a .csv file
+            in data/interim/ with a header and a single row of
+            data."""
 
         # Data path for the test data
-        self.TEST_DATA_PATH = Path('../data/interim/test_data.csv')
+        self.test_data_path = Path('../data/interim/test_data.csv')
 
         # Path for the models
-        self.MODEL_PATH = Path('../models')
+        self.model_path = Path('../models')
 
     def tearDown(self):
         pass
@@ -77,24 +77,24 @@ class Test_predict_model(TestCase):
         """The 'predict' option should either be called with the 'test_value=
         <INT>' flag, or with the 'new_value=<FILENAME>' flag"""
         res = predict_model.predict()
-        assert res == self.ERR_MSG
+        assert res == self.err_msg
 
     def test_both_parameters_gets_error_message(self):
         """The 'predict' option should either be called with the 'test_value=
         <INT>' flag, or with the 'new_value=<FILENAME>' flag - but not both"""
         res = predict_model.predict(test_value=42, new_value='fake_file.csv')
-        assert res == self.ERR_MSG
+        assert res == self.err_msg
 
     def test_test_value_oob_gets_error_message(self):
         """The 'predict' option with the 'test_value=<INT>' flag requires that
         <INT> be between 0 and 41608."""
         res = predict_model.predict(test_value=-1)
-        assert res == self.ERR_MSG
+        assert res == self.err_msg
         res = predict_model.predict(test_value=41609)
-        assert res == self.ERR_MSG
+        assert res == self.err_msg
 
     def test_correct_test_value_call_works(self):
-        """Dumb reference test: calling predict with test_value=0 should 
+        """Dumb reference test: calling predict with test_value=0 should
         result in an answer of exp(8.3232). TODO: consider mocking the
         calls to preprocess.preprocess() and load_learner(); might be
         faster."""
@@ -108,8 +108,8 @@ class Test_predict_model(TestCase):
         preprocess.preprocess() and load_learner(); might be faster."""
         res = predict_model.predict(test_value=0, context=True)
         assert res == ('The predicted value is 4118.318491197586 and the '
-                      'actual value is 4097.0.')
-                        
+                       'actual value is 4097.0.')
+
     def test_correct_new_value_call_works(self):
         """Dumb reference test: calling predict with new_value=<example>
         should result in an answer of exp(8.3232). TODO: consider mocking

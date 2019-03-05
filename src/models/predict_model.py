@@ -1,3 +1,4 @@
+from fastai.basic_train import Learner, load_learner
 from fastai.tabular import *
 import math
 import pandas as pd
@@ -8,15 +9,16 @@ DATA_PATH = Path('../data/interim')
 MODELS_PATH = Path('../models/')
 
 ERR_MSG = \
-"""USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <="""
-"""41608\n An optional flag of '-context' will also"""
-"""provide the actual value for comparison.\n Option 2: """
-"""-new_value=<FILENAME> where <FILENAME> is a .csv file"""
-"""in data/interim/ with a header and a single row of"""
-"""data."""
+            """USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <= 41608
+            \n An optional flag of '-context' will also
+            provide the actual value for comparison.\n Option 2:
+            new_value=<FILENAME> where <FILENAME> is a .csv file
+            in data/interim/ with a header and a single row of
+            data."""
 
-MAX_TEST_VALUE=41608
-MIN_TEST_VALUE=0
+MAX_TEST_VALUE = 41608
+MIN_TEST_VALUE = 0
+
 
 def get_pred_single_val(data: pd.Series, path: Path) -> float:
     """Get a prediction for a single row of data.
@@ -37,6 +39,7 @@ def get_pred_single_val(data: pd.Series, path: Path) -> float:
 
     return prediction
 
+
 def errors_in_kwargs(**kwargs) -> bool:
     """Check for errors in the parameters passed to predict().
 
@@ -45,13 +48,13 @@ def errors_in_kwargs(**kwargs) -> bool:
     """
     # Exactly one of ('test_value', 'new_value') must be in kwargs
     if ('test_value' not in kwargs and 'new_value' not in kwargs) or \
-        ('test_value' in kwargs and 'new_value' in kwargs):
+            ('test_value' in kwargs and 'new_value' in kwargs):
         return True
 
     if 'test_value' in kwargs:
         # Check boundaries
         if (kwargs['test_value'] < MIN_TEST_VALUE) or \
-            (kwargs['test_value'] > MAX_TEST_VALUE):
+                (kwargs['test_value'] > MAX_TEST_VALUE):
             return True
 
     # If no errors, return False
@@ -83,11 +86,10 @@ def predict(**kwargs) -> str:
             example = test_df.iloc[kwargs['test_value']]
             prediction = get_pred_single_val(example, MODELS_PATH)
 
-            if 'context' in kwargs and kwargs['context'] == True:
+            if 'context' in kwargs and kwargs['context']:
                 return ('The predicted value is ' + str(prediction) + ' and '
                         'the actual value is ' + str(example.sales) + '.')
-            else:
-                return prediction
+            return str(prediction)
 
         except:
             return ERR_MSG
@@ -102,7 +104,7 @@ def predict(**kwargs) -> str:
             df = preprocess.preprocess(df)
             prediction = get_pred_single_val(df.iloc[0], MODELS_PATH)
 
-            return prediction
+            return str(prediction)
 
         except:
             return ERR_MSG
