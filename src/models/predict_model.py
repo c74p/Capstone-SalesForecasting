@@ -9,14 +9,14 @@ DATA_PATH = Path('../data/interim')
 MODELS_PATH = Path('../models/')
 
 ERR_MSG = \
-            """USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <= 41608
+            """USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <= 40282
             \n An optional flag of '-context' will also
             provide the actual value for comparison.\n Option 2:
             new_value=<FILENAME> where <FILENAME> is a .csv file
             in data/interim/ with a header and a single row of
             data."""
 
-MAX_TEST_VALUE = 41608
+MAX_TEST_VALUE = 40282
 MIN_TEST_VALUE = 0
 
 

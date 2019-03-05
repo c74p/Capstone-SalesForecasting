@@ -127,4 +127,6 @@ def compare_rmspes(model0, rmspe0, model1, rmspe1):
     Input: the two models and their rmspes.
     Output: A list of the the models to be saved, in order best to worst.
     """
-    pass
+    if rmspe0 <= rmspe1:
+        return [model0, model1]
+    return [model1, model0]

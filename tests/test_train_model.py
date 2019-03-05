@@ -1,3 +1,8 @@
+from datetime import datetime
+from fastai import callbacks
+from fastai.metrics import exp_rmspe
+from fastai.tabular import DatasetType, TabularList
+from functools import partial
 import numpy as np
 import pandas as pd
 from pathlib import Path
@@ -114,8 +119,13 @@ class TestTrainModel(TestCase):
             # It raises because we don't pass enough info to 'learn' to call
             # .get_preds() - that's why this test is split into two parts
             train_model.get_pred_new_data_old_model(self.df, self.model_path)
-        assert mock_preprocess.called
-        assert mock_load_learner.called
+        #assert mock_preprocess.called
+        mock_preprocess.assert_called_with(self.df)
+        #assert mock_load_learner.called
+        mock_load_learner.assert_called
+        #mock_load_learner.assert_called_with(self.model_path, test=TabularList.
+        #                                    from_df(mock_preprocess, path=
+        #                                            self.model_path))
 
     @patch('src.models.train_model.Learner.get_preds',
            return_value=(np.array([1, 1, 1]), 1))
@@ -127,8 +137,8 @@ class TestTrainModel(TestCase):
         model gauged by the new data vs actuals.
         """
         train_model.get_pred_new_data_old_model(self.df, self.model_path)
-        assert mock_get_preds.called
-        assert mock_rmspe.called
+        mock_get_preds.assert_called_with(ds_type=DatasetType.Test)
+        mock_rmspe.assert_called
 
     @patch('src.models.preprocess.preprocess')
     @patch('src.models.preprocess.gather_args')
@@ -146,12 +156,34 @@ class TestTrainModel(TestCase):
             train_model.get_new_model_and_pred(train_df=self.df[:2],
                                                valid_df=self.df[2:],
                                                path=self.model_path)
-        assert mock_preprocess.called
-        assert mock_gather_args.called
-        assert mock_tabular_list.from_df.called
-        assert mock_tabular_learner.called
+        mock_preprocess.assert_called()
+        mock_gather_args.assert_called()
+        mock_tabular_list.from_df.assert_called_with(mock_preprocess(),
+            path=self.model_path,
+            procs=mock_gather_args()['procs'],
+            cat_names=mock_gather_args()['cat_names'],
+            cont_names=mock_gather_args()['cont_names'])
+        mock_tabular_learner.assert_called()
+        #TODO either get this to work or remove it
+        #mock_tabular_learner.assert_called_with(
+        #    mock_tabular_list.from_df().split_by_idx().label_from_df().
+        #    databunch(),
+        #    layers=[100, 100],
+        #    ps=[0.001, 0.01],
+        #    emb_drop=0.01,
+        #    metrics=exp_rmspe,
+        #    y_range=None,
+        #    callback_fns=[partial(callbacks.tracker.TrackerCallback,
+        #                          monitor='exp_rmspe'),
+        #                  partial(callbacks.tracker.EarlyStoppingCallback,
+        #                          mode='min', monitor='exp_rmspe',
+        #                          min_delta=0.01, patience=1),
+        #                  partial(callbacks.tracker.SaveModelCallback,
+        #                          monitor='exp_rmspe', mode='min',
+        #                          every='improvement',
+        #                          name=
+        #                          datetime.now().strftime("%Y-%m-%d-%X"))])
 
-    @pytest.mark.this
     def test_compare_rmspes(self):
         """compare_rmspes should compare the rmspes of the two models and return
         them in order.
@@ -164,6 +196,12 @@ class TestTrainModel(TestCase):
         assert train_model.compare_rmspes(winner[0], winner[1], loser[0],
                                           loser[1]) == ['winner', 'loser']
 
+    @pytest.mark.this
+    def test_save_models(self):
+        """save_models should save the second-best model to an appropriate
+        file, and the best model to the current best model file.
+        """
+        assert False
 # def test_import_csvs_pulls_no_csvs_from_empty_directory(self):
 # """Nothing should be returned from an empty directory"""
 # with mock.patch('os.listdir', return_value=self.fake_empty_files):

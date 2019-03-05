@@ -57,7 +57,7 @@ class TestPredictModel(TestCase):
 
         # Error message for an incorrect call to predict()
         self.err_msg = \
-            """USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <= 41608
+            """USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <= 40282
             \n An optional flag of '-context' will also
             provide the actual value for comparison.\n Option 2:
             new_value=<FILENAME> where <FILENAME> is a .csv file
@@ -90,7 +90,7 @@ class TestPredictModel(TestCase):
         <INT> be between 0 and 41608."""
         res = predict_model.predict(test_value=-1)
         assert res == self.err_msg
-        res = predict_model.predict(test_value=41609)
+        res = predict_model.predict(test_value=40283)
         assert res == self.err_msg
 
     def test_correct_test_value_call_works(self):
