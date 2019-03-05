@@ -128,5 +128,23 @@ def compare_rmspes(model0, rmspe0, model1, rmspe1):
     Output: A list of the the models to be saved, in order best to worst.
     """
     if rmspe0 <= rmspe1:
-        return [model0, model1]
-    return [model1, model0]
+        return (model0, model1)
+    return (model1, model0)
+
+
+def save_models(winner: Learner, loser: Learner, path: Path) -> None:
+    """Saves the models with appropriate descriptions for later use.
+
+    Input: the winning and losing models (not the names, the models themselves
+    -- probably called something like 'learner'. Also, the model path.
+    Output: no return value.  Saves the models to the path.
+    """
+    winner_save_string = \
+        'current_best-' + datetime.now().strftime("%Y-%m-%d-%X")
+    loser_save_string = \
+        'second_best-' + datetime.now().strftime("%Y-%m-%d-%X")
+
+    winner.save(winner_save_string, path=path, with_opt=False)
+    winner.export(winner_save_string, path=path)
+    loser.save(loser_save_string, path=path, with_opt=False)
+    loser.export(loser_save_string, path=path)

@@ -1,5 +1,6 @@
 from datetime import datetime
 from fastai import callbacks
+from fastai.basic_train import load_learner
 from fastai.metrics import exp_rmspe
 from fastai.tabular import DatasetType, TabularList
 from functools import partial
@@ -8,7 +9,7 @@ import pandas as pd
 from pathlib import Path
 import pytest
 from unittest import TestCase, mock
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import sys, os  # NOQA
 THIS_PATH = os.path.dirname(os.path.abspath(__file__))
@@ -140,6 +141,7 @@ class TestTrainModel(TestCase):
         mock_get_preds.assert_called_with(ds_type=DatasetType.Test)
         mock_rmspe.assert_called
 
+    @pytest.mark.this
     @patch('src.models.preprocess.preprocess')
     @patch('src.models.preprocess.gather_args')
     @patch('src.models.train_model.TabularList')
@@ -194,14 +196,40 @@ class TestTrainModel(TestCase):
         # Note that in this test we're abusing the fact that Python has no real
         # type checker. In the real code, we're passing models, not strings.
         assert train_model.compare_rmspes(winner[0], winner[1], loser[0],
-                                          loser[1]) == ['winner', 'loser']
+                                          loser[1]) == ('winner', 'loser')
 
-    @pytest.mark.this
-    def test_save_models(self):
+    @mock.patch.object(train_model.Learner, 'save')
+    @mock.patch.object(train_model.Learner, 'export')
+    def test_save_models(self, mock_Learner_export, mock_Learner_save):
         """save_models should save the second-best model to an appropriate
         file, and the best model to the current best model file.
         """
-        assert False
+
+        # fake winner/loser models and the names they should be saved with
+        winner = load_learner(self.model_path)
+        loser = load_learner(path=self.model_path,
+                             fname='bad_model_do_not_use_0.0465.pkl')
+
+        winner_save_string = \
+            'current_best-' + datetime.now().strftime("%Y-%m-%d-%X")
+        loser_save_string = \
+            'second_best-' + datetime.now().strftime("%Y-%m-%d-%X")
+
+        # Call the function
+        train_model.save_models(winner, loser, self.model_path)
+
+        # Assertions
+        mock_Learner_save.assert_any_call(winner_save_string,
+                                          path=self.model_path,
+                                          with_opt=False)
+        mock_Learner_save.assert_any_call(loser_save_string,
+                                          path=self.model_path,
+                                          with_opt=False)
+        mock_Learner_export.assert_any_call(winner_save_string,
+                                            path=self.model_path)
+        mock_Learner_export.assert_any_call(loser_save_string,
+                                            path=self.model_path)
+
 # def test_import_csvs_pulls_no_csvs_from_empty_directory(self):
 # """Nothing should be returned from an empty directory"""
 # with mock.patch('os.listdir', return_value=self.fake_empty_files):
