@@ -14,19 +14,17 @@ from unittest.mock import call, patch
 import sys, os  # NOQA
 THIS_PATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, THIS_PATH + '/../')
-from src.models import preprocess, train_model # NOQA
+from src import learner # NOQA
 
-# This is the test file for the src/models/train_model.py file.
+# This is the test file for the src/learner.py file.
 
 # pd.set_option('mode.chained_assignment', 'raise')  # Chained assmt=Exception
 
 PROJ_ROOT = Path('..')
 
 
-class TestTrainModel(TestCase):
-    """Test the steps needed to train the model, compare against the current
-    best model, and update the 'current best' if appropriate.
-    """
+class TestLearner(TestCase):
+    """Test the wrapper module learner.py."""
 
     def setUp(self):
 
@@ -90,8 +88,7 @@ class TestTrainModel(TestCase):
     def tearDown(self):
         pass
 
-    def 
-    def test_rmspe(self):  
+    def test_rmspe(self):  # NOQA
         """Here are some hard-coded values, rather than generated, for speed"""
         assert train_model.rmspe(np.array([0]), np.array([1])) == 1
         assert train_model.rmspe(np.array([0.25]), np.array([1])) == 0.75
