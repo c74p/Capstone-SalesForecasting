@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 import pytest
+import tempfile
 from unittest import TestCase, mock
 from unittest.mock import call, patch
 
@@ -90,7 +91,6 @@ class TestTrainModel(TestCase):
     def tearDown(self):
         pass
 
-    def 
     def test_rmspe(self):  
         """Here are some hard-coded values, rather than generated, for speed"""
         assert train_model.rmspe(np.array([0]), np.array([1])) == 1
@@ -199,6 +199,7 @@ class TestTrainModel(TestCase):
         assert train_model.compare_rmspes(winner[0], winner[1], loser[0],
                                           loser[1]) == ('winner', 'loser')
 
+    @pytest.mark.this
     @mock.patch.object(train_model.Learner, 'save', side_effects=None)
     @mock.patch.object(train_model.Learner, 'export', side_effects=None)
     def test_save_models(self, mock_Learner_export, mock_Learner_save):
@@ -208,6 +209,9 @@ class TestTrainModel(TestCase):
 
         # fake winner/loser models and the names they should be saved with
         winner = load_learner(self.model_path)
+        # fname below could be replaced by any other not-as-good model
+        # Even better would be to replace this with a pre-generated model as
+        # a pytest funcarg
         loser = load_learner(path=self.model_path,
                              fname='bad_model_do_not_use_0.0465.pkl')
         winner_save_string = \
@@ -215,20 +219,22 @@ class TestTrainModel(TestCase):
         loser_save_string = \
             'second_best-' + datetime.now().strftime("%Y-%m-%d-%X")
 
-        # Call the function
-        train_model.save_models(winner, loser, self.model_path)
+        with tempfile.TemporaryDirectory() as save_path:
 
-        # Assertions
-        mock_Learner_save.assert_any_call(winner_save_string,
-                                          path=self.model_path,
-                                          with_opt=False)
-        mock_Learner_save.assert_any_call(loser_save_string,
-                                          path=self.model_path,
-                                          with_opt=False)
-        mock_Learner_export.assert_any_call(winner_save_string,
-                                            path=self.model_path)
-        mock_Learner_export.assert_any_call(loser_save_string,
-                                            path=self.model_path)
+            # Call the function
+            train_model.save_models(winner, loser, save_path)
+
+            # Assertions
+            mock_Learner_save.assert_any_call(winner_save_string,
+                                              path=save_path,
+                                              with_opt=False)
+            mock_Learner_save.assert_any_call(loser_save_string,
+                                              path=save_path,
+                                              with_opt=False)
+            mock_Learner_export.assert_any_call(winner_save_string,
+                                                path=save_path)
+            mock_Learner_export.assert_any_call(loser_save_string,
+                                                path=save_path)
 
 # def test_import_csvs_pulls_no_csvs_from_empty_directory(self):
 # """Nothing should be returned from an empty directory"""

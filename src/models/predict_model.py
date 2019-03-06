@@ -3,18 +3,21 @@ from fastai.tabular import *
 import math
 import pandas as pd
 from pathlib import Path
-from src.models import preprocess
+import preprocess
+import sys
+from typing import Dict
 
-DATA_PATH = Path('../data/interim')
-MODELS_PATH = Path('../models/')
+DATA_PATH = Path('../../data/interim')
+MODELS_PATH = Path('../../models/')
 
 ERR_MSG = \
-            """USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <= 40282
-            \n An optional flag of '-context' will also
-            provide the actual value for comparison.\n Option 2:
-            new_value=<FILENAME> where <FILENAME> is a .csv file
-            in data/interim/ with a header and a single row of
-            data."""
+    ("\nUSAGE: \n\n OPTION 1: python3 predict_model.py --test_value=<INT>\n"
+     "\t\twhere 0 <= INT <= 40282"
+     "\n\n If the optional flag of '--context=True' is included, "
+     "the actual sales value will be provided for comparison.\n\n OPTION 2:"
+     "python3 predict_model.py --new_value=<FILENAME>\n\t\t where <FILENAME> "
+     "is a .csv file in data/interim/ with a header and a single row of "
+     "data.\n")
 
 MAX_TEST_VALUE = 40282
 MIN_TEST_VALUE = 0
@@ -108,3 +111,20 @@ def predict(**kwargs) -> str:
 
         except:
             return ERR_MSG
+
+
+if __name__ == '__main__':
+    args: Dict = {}
+    try:
+        for arg in sys.argv[1:]:
+            arg, val = arg.strip('-').split('=')
+            if arg == 'test_value':
+                args[arg] = int(val)
+            else:
+                args[arg] = val
+
+        result = predict(**args)
+        print(result)
+
+    except:
+        print(ERR_MSG)
