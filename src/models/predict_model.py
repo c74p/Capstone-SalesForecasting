@@ -12,9 +12,9 @@ MODELS_PATH = Path('../../models/')
 
 ERR_MSG = \
     ("\nUSAGE: \n\n OPTION 1: python3 predict_model.py --test_value=<INT>\n"
-     "\t\twhere 0 <= INT <= 40282"
+     "\t\twhere 0 <= INT <= 40281"
      "\n\n If the optional flag of '--context=True' is included, "
-     "the actual sales value will be provided for comparison.\n\n OPTION 2:"
+     "the actual sales value will be provided for comparison.\n\n OPTION 2: "
      "python3 predict_model.py --new_value=<FILENAME>\n\t\t where <FILENAME> "
      "is a .csv file in data/interim/ with a header and a single row of "
      "data.\n")
@@ -64,7 +64,7 @@ def errors_in_kwargs(**kwargs) -> bool:
     return False
 
 
-def predict(**kwargs) -> str:
+def predict(data_path=DATA_PATH, models_path=MODELS_PATH, **kwargs) -> str:
     """Get a prediction for a single value and return it to the screen.
 
     Input: see ERR_MSG above for required inputs and options.
@@ -76,18 +76,22 @@ def predict(**kwargs) -> str:
     """
 
     if errors_in_kwargs(**kwargs):
+        print('here')
         return ERR_MSG
 
     if 'test_value' in kwargs:
 
+        print('what up test val')
+        print(data_path)
+        print(models_path)
         try:
             # Get the test dataframe and process it
-            test_df = pd.read_csv(DATA_PATH/'test_data.csv', low_memory=False)
+            test_df = pd.read_csv(data_path/'test_data.csv', low_memory=False)
             test_df = preprocess.preprocess(test_df)
 
             # Get our example row and get the prediction from it
             example = test_df.iloc[kwargs['test_value']]
-            prediction = get_pred_single_val(example, MODELS_PATH)
+            prediction = get_pred_single_val(example, models_path)
 
             if 'context' in kwargs and kwargs['context']:
                 return ('The predicted value is ' + str(prediction) + ' and '
@@ -99,13 +103,13 @@ def predict(**kwargs) -> str:
 
     if 'new_value' in kwargs:
 
+        print('new val ha')
         try:
-            series = kwargs['new_value']
-
             # Convert our series to a dataframe so we can process it
-            df = series.to_frame().T
+            df = pd.read_csv(data_path/kwargs['new_value'])
             df = preprocess.preprocess(df)
-            prediction = get_pred_single_val(df.iloc[0], MODELS_PATH)
+
+            prediction = get_pred_single_val(df.iloc[0], models_path)
 
             return str(prediction)
 

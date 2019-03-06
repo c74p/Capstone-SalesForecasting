@@ -8,7 +8,8 @@ from unittest import TestCase, mock
 import sys, os # NOQA
 THIS_PATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, THIS_PATH + '/../')
-from src.models import predict_model # NOQA
+sys.path.insert(1, THIS_PATH + '/../src/models/')
+from src.models import predict_model, preprocess  # NOQA
 
 # This is the test file for the src/models/predict_model.py file.
 
@@ -56,19 +57,28 @@ class TestPredictModel(TestCase):
                                 1.0, 0.0, 0, 0.0, 85, '2015-06-14']])
 
         # Error message for an incorrect call to predict()
-        self.err_msg = \
-            """USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <= 40282
-            \n An optional flag of '-context' will also
-            provide the actual value for comparison.\n Option 2:
-            new_value=<FILENAME> where <FILENAME> is a .csv file
-            in data/interim/ with a header and a single row of
-            data."""
+        #self.err_msg = \
+        #    """USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <= 40282
+        #    \n An optional flag of '-context' will also
+        #    provide the actual value for comparison.\n Option 2:
+        #    new_value=<FILENAME> where <FILENAME> is a .csv file
+        #    in data/interim/ with a header and a single row of
+        #    data."""
 
+        self.err_msg = \
+            ("\nUSAGE: \n\n OPTION 1: python3 predict_model.py "
+             "--test_value=<INT>\n\t\twhere 0 <= INT <= 40281"
+             "\n\n If the optional flag of '--context=True' is included, "
+             "the actual sales value will be provided for comparison.\n\n "
+             "OPTION 2: python3 predict_model.py --new_value=<FILENAME>\n\t\t "
+             "where <FILENAME> is a .csv file in data/interim/ with a header "
+             "and a single row of data.\n")
         # Data path for the test data
+        self.data_path = Path('../data/interim/')
         self.test_data_path = Path('../data/interim/test_data.csv')
 
         # Path for the models
-        self.model_path = Path('../models')
+        self.models_path = Path('../models')
 
     def tearDown(self):
         pass
@@ -93,12 +103,14 @@ class TestPredictModel(TestCase):
         res = predict_model.predict(test_value=40283)
         assert res == self.err_msg
 
-    def test_correct_test_value_call_works(self):
+    def test_correct_test_value_call_works(self):  # NOQA
         """Dumb reference test: calling predict with test_value=0 should
         result in an answer of exp(8.3232). TODO: consider mocking the
         calls to preprocess.preprocess() and load_learner(); might be
         faster."""
-        res = predict_model.predict(test_value=0)
+        res = predict_model.predict(data_path=self.data_path,
+                                    models_path=self.models_path,
+                                    test_value=0)
         assert abs(float(res) - 4118.317561157504) < 0.01
 
     def test_correct_test_value_call_with_context_works(self):
@@ -106,7 +118,9 @@ class TestPredictModel(TestCase):
         context=True should result in an answer of exp(8.3232), with
         appropriate context. TODO: consider mocking out the calls to
         preprocess.preprocess() and load_learner(); might be faster."""
-        res = predict_model.predict(test_value=0, context=True)
+        res = predict_model.predict(data_path=self.data_path,
+                                    models_path=self.models_path,
+                                    test_value=0, context=True)
         assert res == ('The predicted value is 4118.318491197586 and the '
                        'actual value is 4097.0.')
 
@@ -117,5 +131,8 @@ class TestPredictModel(TestCase):
         faster."""
         # Fake a test_value from the existing pre-made dataframe
         # Use .iloc[0] to make sure we're using a Series per expectations
-        res = predict_model.predict(new_value=self.df.iloc[0])
+        #res = predict_model.predict(new_value=self.df.iloc[0])
+        res = predict_model.predict(data_path=self.data_path,
+                                    models_path=self.models_path,
+                                    new_value='example_data_row.csv')
         assert abs(float(res) - 4118.317561157504) < 0.01
