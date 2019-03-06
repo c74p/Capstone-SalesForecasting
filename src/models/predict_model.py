@@ -76,14 +76,10 @@ def predict(data_path=DATA_PATH, models_path=MODELS_PATH, **kwargs) -> str:
     """
 
     if errors_in_kwargs(**kwargs):
-        print('here')
         return ERR_MSG
 
     if 'test_value' in kwargs:
 
-        print('what up test val')
-        print(data_path)
-        print(models_path)
         try:
             # Get the test dataframe and process it
             test_df = pd.read_csv(data_path/'test_data.csv', low_memory=False)
@@ -103,7 +99,6 @@ def predict(data_path=DATA_PATH, models_path=MODELS_PATH, **kwargs) -> str:
 
     if 'new_value' in kwargs:
 
-        print('new val ha')
         try:
             # Convert our series to a dataframe so we can process it
             df = pd.read_csv(data_path/kwargs['new_value'])
