@@ -9,20 +9,18 @@ import math
 import numpy as np
 import pandas as pd
 from pathlib import Path
-from src.models import preprocess
-from typing import Any, List, Tuple
+import preprocess
+import sys
+from typing import Any, Dict, List, Tuple
 
-DATA_PATH = Path('../data/interim')
-MODELS_PATH = Path('../models/')
+DATA_PATH = Path('../../data/interim')
+MODELS_PATH = Path('../../models/')
 
 ERR_MSG = \
-    """USAGE: \n Option 1: -test_value=<INT> where 0 <= INT <="""
-"""41608\n An optional flag of '-context' will also"""
-"""provide the actual value for comparison.\n Option 2: """
-"""-new_value=<FILENAME> where <FILENAME> is a .csv file"""
-"""in data/interim/ with a header and a single row of"""
-"""data."""
-
+    ("USAGE: \n\tpython3 train_model.py --train_data=<train_data> "
+     "--valid_data=<valid_data>\n\n"
+     "\twhere <train_data> and <valid_data> are valid .csv files in\n"
+     "\tthe directory 'data/interim/'\n")
 
 MAX_TEST_VALUE = 41608
 MIN_TEST_VALUE = 0
@@ -34,7 +32,8 @@ def rmspe(predicted: np.array, actual: np.array) -> float:
 
 
 def get_pred_new_data_old_model(valid_df: pd.DataFrame,
-                                path: Path) -> Tuple[Learner, float]:
+                                path: Path = MODELS_PATH) -> Tuple[Learner,
+                                                                   float]:
     """Get a RSMPE score for predictions from the existing best model, with
     new data.
 
@@ -54,8 +53,8 @@ def get_pred_new_data_old_model(valid_df: pd.DataFrame,
     return (learn, new_rmspe)
 
 
-def get_new_model_and_pred(train_df: pd.DataFrame, valid_df: pd.DataFrame,
-                           path: Path) -> Tuple[Learner, float]:
+def get_new_model_and_pred(train: pd.DataFrame, valid: pd.DataFrame,
+                           path: Path = MODELS_PATH) -> Tuple[Learner, float]:
     """Take new train and validation dataframes, re-run the model, and return
     the model and its root mean squared percentage error.
 
@@ -64,21 +63,43 @@ def get_new_model_and_pred(train_df: pd.DataFrame, valid_df: pd.DataFrame,
     Output: the model (ready to save if better than the old one) and its rmspe.
     """
 
-    # Put the dataframes together and process, with valid_idx just being the
-    # portion that came from valid_df
-    df = train_df.append(valid_df).copy()
+    train.sort_index(inplace=True)
+    valid.sort_index(inplace=True)
+    df = train.append(valid).copy()
+
+    # valid_idx is the portion that came from valid_df
+    # Count only the rows with sales == 0 since the zero-sales rows will get
+    # stripped out when we preprocess
+    valid_idx = (len(train[train.sales != 0]), len(df[df.sales != 0]))
+
     df = preprocess.preprocess(df)
-    args = preprocess.gather_args(df)
-    valid_idx = (len(train_df), len(df))
+    inner_args = preprocess.gather_args(df)
+    #print(df.head)
+    #print(len(df), len(df.columns))
+    #print(inner_args)
+    #print('cat', len(inner_args['cat_names']))
+    #print('cont', len(inner_args['cont_names']))
+    #print(path)
+    #print(inner_args['procs'])
+    #print(valid_idx)
+    #print(len(df))
 
     # Create a databunch in the usual way
-    data = (TabularList.from_df(df, path=path, cat_names=args['cat_names'],
-                                cont_names=args['cont_names'],
-                                procs=args['procs'])
-            .split_by_idx(valid_idx)
-            .label_from_df(cols=args['dep_var'],
-                           label_cls=FloatList, log=True)
-            .databunch())
+    data = (TabularList.from_df(df, path=path,
+                                cat_names=inner_args['cat_names'],
+                                cont_names=inner_args['cont_names'],
+                                procs=inner_args['procs']))
+    #print(data[:5])
+    #print(len(data))
+    #print(data[-5:])
+    #print(valid_idx)
+    data = data.split_by_idx(valid_idx)
+    data = data.label_from_df(cols=inner_args['dep_var'], label_cls=FloatList,
+                              log=True)
+    data = data.databunch()
+    # TODO
+    # print(data)
+    # pd.read_csv('')
 
     # Create a learner
     # Let's construct the learner from scratch here, in case we want to change
@@ -148,3 +169,23 @@ def save_models(winner: Learner, loser: Learner, path: Path) -> None:
     winner.export(winner_save_string, path=path)
     loser.save(loser_save_string, path=path, with_opt=False)
     loser.export(loser_save_string, path=path)
+
+
+if __name__ == '__main__':
+    args: Dict = {}
+    try:
+        for arg in sys.argv[1:]:
+            arg, val = arg.strip('-').split('=')
+            args[arg] = val
+        print(args)
+
+        train_df = pd.read_csv(DATA_PATH/args['train_data'], low_memory=False)
+        valid_df = pd.read_csv(DATA_PATH/args['valid_data'], low_memory=False)
+        model0, rmspe0 = get_pred_new_data_old_model(valid_df=valid_df)
+        model1, rmspe1 = get_new_model_and_pred(train=train_df,
+                                                valid=valid_df)
+        models_to_save = compare_rmspes(model0, rmspe0, model1, rmspe1)
+        save_models(models_to_save)
+
+    except:
+        print(ERR_MSG)

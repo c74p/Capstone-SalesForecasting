@@ -15,7 +15,8 @@ from unittest.mock import call, patch
 import sys, os  # NOQA
 THIS_PATH = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, THIS_PATH + '/../')
-from src.models import preprocess, train_model # NOQA
+sys.path.insert(1, THIS_PATH + '/../src/models/')
+from src.models import train_model # NOQA
 
 # This is the test file for the src/models/train_model.py file.
 
@@ -109,7 +110,7 @@ class TestTrainModel(TestCase):
                                                          self.model_path)
         assert abs(res - 0.048635791657389196) < 0.001
 
-    @patch('src.models.preprocess.preprocess')
+    @patch('src.models.train_model.preprocess.preprocess')
     @patch('src.models.train_model.load_learner')
     def test_get_pred_new_data_old_model_calls_pt1(self, mock_load_learner,
                                                    mock_preprocess):
@@ -121,13 +122,8 @@ class TestTrainModel(TestCase):
             # It raises because we don't pass enough info to 'learn' to call
             # .get_preds() - that's why this test is split into two parts
             train_model.get_pred_new_data_old_model(self.df, self.model_path)
-        #assert mock_preprocess.called
         mock_preprocess.assert_called_with(self.df)
-        #assert mock_load_learner.called
-        mock_load_learner.assert_called
-        #mock_load_learner.assert_called_with(self.model_path, test=TabularList.
-        #                                    from_df(mock_preprocess, path=
-        #                                            self.model_path))
+        mock_load_learner.assert_called()
 
     @patch('src.models.train_model.Learner.get_preds',
            return_value=(np.array([1, 1, 1]), 1))
@@ -140,14 +136,13 @@ class TestTrainModel(TestCase):
         """
         train_model.get_pred_new_data_old_model(self.df, self.model_path)
         mock_get_preds.assert_called_with(ds_type=DatasetType.Test)
-        mock_rmspe.assert_called
+        mock_rmspe.assert_called()
 
-    @pytest.mark.this
-    @patch('src.models.preprocess.preprocess')
-    @patch('src.models.preprocess.gather_args')
+    @patch('src.models.train_model.preprocess.preprocess')
+    @patch('src.models.train_model.preprocess.gather_args')
     @patch('src.models.train_model.TabularList')
     @patch('src.models.train_model.tabular_learner')
-    def test_get_pred_new_model_calls_pt1(self, mock_tabular_learner,
+    def test_get_pred_new_model_calls_fns(self, mock_tabular_learner,
                                           mock_tabular_list,
                                           mock_gather_args, mock_preprocess):
         """The data should be processed, the model run, and the new accuracy
@@ -156,8 +151,8 @@ class TestTrainModel(TestCase):
         with self.assertRaises(ValueError):
             # It raises because we don't pass enough info to 'learn' to call
             # .get_preds()
-            train_model.get_new_model_and_pred(train_df=self.df[:2],
-                                               valid_df=self.df[2:],
+            train_model.get_new_model_and_pred(train=self.df[:2],
+                                               valid=self.df[2:],
                                                path=self.model_path)
         mock_preprocess.assert_called()
         mock_gather_args.assert_called()
@@ -167,25 +162,6 @@ class TestTrainModel(TestCase):
             cat_names=mock_gather_args()['cat_names'],
             cont_names=mock_gather_args()['cont_names'])
         mock_tabular_learner.assert_called()
-        #TODO either get this to work or remove it
-        #mock_tabular_learner.assert_called_with(
-        #    mock_tabular_list.from_df().split_by_idx().label_from_df().
-        #    databunch(),
-        #    layers=[100, 100],
-        #    ps=[0.001, 0.01],
-        #    emb_drop=0.01,
-        #    metrics=exp_rmspe,
-        #    y_range=None,
-        #    callback_fns=[partial(callbacks.tracker.TrackerCallback,
-        #                          monitor='exp_rmspe'),
-        #                  partial(callbacks.tracker.EarlyStoppingCallback,
-        #                          mode='min', monitor='exp_rmspe',
-        #                          min_delta=0.01, patience=1),
-        #                  partial(callbacks.tracker.SaveModelCallback,
-        #                          monitor='exp_rmspe', mode='min',
-        #                          every='improvement',
-        #                          name=
-        #                          datetime.now().strftime("%Y-%m-%d-%X"))])
 
     def test_compare_rmspes(self):
         """compare_rmspes should compare the rmspes of the two models and return
@@ -199,7 +175,6 @@ class TestTrainModel(TestCase):
         assert train_model.compare_rmspes(winner[0], winner[1], loser[0],
                                           loser[1]) == ('winner', 'loser')
 
-    @pytest.mark.this
     @mock.patch.object(train_model.Learner, 'save', side_effects=None)
     @mock.patch.object(train_model.Learner, 'export', side_effects=None)
     def test_save_models(self, mock_Learner_export, mock_Learner_save):
