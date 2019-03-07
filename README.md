@@ -35,7 +35,7 @@ Google Cloud instance to run the tests.
 go to notebooks/ models and run the Jupyter notebook
 
 **b) Get a prediction** If you want to get a prediction: go to src/models and
-run python predict_model.py --test_value=<INT> where 0 < INT < 40282
+run python predict_model.py --test_value=INT where 0 < INT < 40282
 
 You can add '--context=True' if you want the actual sales value as well as the
 predicted value.
