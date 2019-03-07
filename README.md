@@ -18,18 +18,18 @@ that link, but I found the Google Cloud environment to 'just work' with the
 Fast.ai library in a way that others (e.g. AWS) did not.
 
 With that out of the way:
-**1)** Clone the repo (you'll need https://git-lfs.github.com/ if you don't already
-have it).
+**1)** Clone the repo (you'll need https://git-lfs.github.com/ if you don't
+already have it).
 
-**2)** In your conda/venv environment of choice, pip install -r requirements.txt
+**2)** In your conda/venv environment of choice:
+pip install -r requirements.txt
 
-**3)** Check the tests! cd tests; py.test It takes about two minutes on my Google
-Cloud instance to run the tests.
+**3)** Check the tests! cd tests; py.test It takes about two minutes on my
+Google Cloud instance to run the tests.
 
-	a) If the tests don't pass, git-LFS probably did not download the data 
-	sets properly (seems more common than I'd like). You'll need to 
-	manually get them from
-	https://github.com/c74p/Capstone-SalesForecasting
+a) If the tests don't pass, git-LFS probably did not download the data sets
+properly (seems more common than I'd like). You'll need to manually get them
+from https://github.com/c74p/Capstone-SalesForecasting
 
 **4)** Lots of options for use!
 
@@ -37,7 +37,7 @@ Cloud instance to run the tests.
 models and run the Jupyter notebook
 
 **b)** If you want to get a prediction: go to src/models and run
-    python predict_model.py --test_value=<INT> where 0 < INT < 40282
+python predict_model.py --test_value=<INT> where 0 < INT < 40282
 
 You can add '--context=True' if you want the actual sales value as well as the
 predicted value.
@@ -45,8 +45,7 @@ predicted value.
 Also, if you'd rather pass in a single-row .csv file to get a prediction, you
 can do that:
 
-    python predict_model.py \
-		--new_value='../../data/interim/example_data_row.csv'
+python predict_model.py --new_value='../../data/interim/example_data_row.csv'
 
 Of course, you can create other prediction data if you like.
 
