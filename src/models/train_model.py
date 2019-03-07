@@ -63,43 +63,33 @@ def get_new_model_and_pred(train: pd.DataFrame, valid: pd.DataFrame,
     Output: the model (ready to save if better than the old one) and its rmspe.
     """
 
+    # Sort the train/valid sets and stick em together
     train.sort_index(inplace=True)
     valid.sort_index(inplace=True)
     df = train.append(valid).copy()
 
-    # valid_idx is the portion that came from valid_df
-    # Count only the rows with sales == 0 since the zero-sales rows will get
-    # stripped out when we preprocess
-    valid_idx = (len(train[train.sales != 0]), len(df[df.sales != 0]))
+    # We'll need to know how many items in our validation set later
+    n_valid = len(valid[valid.sales != 0])
 
+    # Preprocessing
     df = preprocess.preprocess(df)
     inner_args = preprocess.gather_args(df)
-    #print(df.head)
-    #print(len(df), len(df.columns))
-    #print(inner_args)
-    #print('cat', len(inner_args['cat_names']))
-    #print('cont', len(inner_args['cont_names']))
-    #print(path)
-    #print(inner_args['procs'])
-    #print(valid_idx)
-    #print(len(df))
 
-    # Create a databunch in the usual way
+    # Create a databunch by starting with a TabularList and applying the usual
+    # transformations
     data = (TabularList.from_df(df, path=path,
                                 cat_names=inner_args['cat_names'],
                                 cont_names=inner_args['cont_names'],
                                 procs=inner_args['procs']))
-    #print(data[:5])
-    #print(len(data))
-    #print(data[-5:])
-    #print(valid_idx)
-    data = data.split_by_idx(valid_idx)
+
+    n_items = len(data.items)
+
+    # Since we sorted by index and appended, our validation set is just the
+    # n_valid highest items in our list
+    data = data.split_by_valid_func(lambda i: i >= n_items - n_valid)
     data = data.label_from_df(cols=inner_args['dep_var'], label_cls=FloatList,
                               log=True)
     data = data.databunch()
-    # TODO
-    # print(data)
-    # pd.read_csv('')
 
     # Create a learner
     # Let's construct the learner from scratch here, in case we want to change
