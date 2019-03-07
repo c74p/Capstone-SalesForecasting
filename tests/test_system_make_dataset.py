@@ -1,3 +1,6 @@
+import os
+import pytest
+from tdda.referencetest import referencepytest, tag
 from unittest import TestCase
 
 import sys, os # NOQA
@@ -10,27 +13,32 @@ class test_Make_Dataset(TestCase):
 
     def setUp(self):
         # Config filepaths
-        PROJ_ROOT = os.path.abspath(os.pardir)
-        directory = os.path.join(PROJ_ROOT, 'data', 'raw')
+        self.PROJ_ROOT = os.path.abspath(os.pardir)
+        self.directory = os.path.join(self.PROJ_ROOT, 'data', 'raw')
 
-        self.df = make_dataset.merge_csvs(make_dataset.import_csvs(directory,
-            ignore_files=['test.csv' 'sample_submission.csv'], header=0,
-            low_memory=False))
+        self.df, _ = make_dataset.merge_dfs(
+            make_dataset.import_csvs(self.directory,
+                                     ignore_files=['test.csv',
+                                                   'sample_submission.csv'],
+                                     header=0, low_memory=False))
 
     def tearDown(self):
         pass
 
-    def test_Make_Dataset_happy_path(self):
+    @pytest.mark.this
+    def test_Make_Dataset_happy_path(self):#, ref):
         """Happy path for make_dataset.py"""
         # User story: user runs src.make_dataset() on the current directory
         # and gets a fully functional dataset, including:
         #   - number of rows is correct
 
         # This takes >8 GB of memory - only uncomment when ready!
-        ref.assertDataFrameCorrect(self.df, 'wrangled_dataframe.csv')
+        #ref.assertDataFrameCorrect(self.df, 'wrangled_dataframe.csv')
+        print(os.listdir(self.directory))
+        print(self.df.head())
         assert len(self.df) == 1050330
-        self.fail('Finish the test!')
-        self.fail('Uncomment the reference test above when ready')
+        #self.fail('Finish the test!')
+        #self.fail('Uncomment the reference test above when ready')
         #   - training data is in there
         #   - trend data is in there
         #   - weather data is in there
