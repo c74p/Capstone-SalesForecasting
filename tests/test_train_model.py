@@ -196,8 +196,7 @@ class TestTrainModel(TestCase):
         with tempfile.TemporaryDirectory() as save_path:
 
             # Call the function
-            train_model.save_models(winner, loser, save_path)
+            train_model.save_models(winner, loser, Path(save_path))
 
             # Assertions
-            mock_Learner_save.assert_called()
             mock_Learner_export.assert_called()

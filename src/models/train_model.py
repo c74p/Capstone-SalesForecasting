@@ -152,11 +152,11 @@ def compare_rmspes(model0, rmspe0, model1, rmspe1):
 
 def save_models(winner: Learner, loser: Learner,
                 path: Path = MODELS_PATH) -> None:
-    """Saves the models with appropriate descriptions for later use.
+    """Saves ('exports') the models with descriptions for later use.
 
     Input: the winning and losing models (not the names, the models themselves
-    -- probably called something like 'learner'. Also, the model path.
-    Output: no return value.  Saves the models to the path.
+    -- probably called something like 'learner'). Also, the model path.
+    Output: no return value.  Exports the models to the path.
     """
     winner_save_string = \
         'current_best-' + datetime.now().strftime("%Y-%m-%d-%X")
@@ -164,35 +164,35 @@ def save_models(winner: Learner, loser: Learner,
     loser_save_string = \
         'second_best-' + datetime.now().strftime("%Y-%m-%d-%X")
 
-    winner.save(name=winner_save_string, path=path, with_opt=False)
-    winner.export(fname=winner_save_string, path=path)
-    loser.save(name=loser_save_string, path=path, with_opt=False)
-    loser.export(fname=loser_save_string, path=path)
+    print(type(path))
+    print(type(winner_save_string))
+    winner.export(fname=(path / winner_save_string))
+    loser.export(fname=(path / loser_save_string))
 
 
 if __name__ == '__main__':
     args: Dict = {}
 
-    try:
-        for arg in sys.argv[1:]:
-            arg, val = arg.strip('-').split('=')
-            args[arg] = val
+    #try:
+    for arg in sys.argv[1:]:
+        arg, val = arg.strip('-').split('=')
+        args[arg] = val
 
-        train_df = pd.read_csv(DATA_PATH/args['train_data'], low_memory=False)
-        valid_df = pd.read_csv(DATA_PATH/args['valid_data'], low_memory=False)
-        model0, rmspe0 = get_pred_new_data_old_model(valid_df=valid_df)
-        model1, rmspe1 = get_new_model_and_pred(train=train_df,
-                                                valid=valid_df)
-        models_to_save = compare_rmspes(model0, rmspe0, model1, rmspe1)
-        save_models(models_to_save[0], models_to_save[1], MODELS_PATH)
-        if models_to_save[0] == model0:
-            print('Retaining existing model, as it fit the validation data '
-                  'better. You can find it in your model path with the name '
-                  '"current-best-" and the most recent date.')
-        else:
-            print('Trained a new model that replaced the existing model. '
-                  'You can find it in your model path with the name '
-                  '"current-best-" and the most recent date.')
+    train_df = pd.read_csv(DATA_PATH/args['train_data'], low_memory=False)
+    valid_df = pd.read_csv(DATA_PATH/args['valid_data'], low_memory=False)
+    model0, rmspe0 = get_pred_new_data_old_model(valid_df=valid_df)
+    model1, rmspe1 = get_new_model_and_pred(train=train_df,
+                                            valid=valid_df)
+    models_to_save = compare_rmspes(model0, rmspe0, model1, rmspe1)
+    save_models(models_to_save[0], models_to_save[1], MODELS_PATH)
+    if models_to_save[0] == model0:
+        print('Retaining existing model, as it fit the validation data '
+              'better. You can find it in your model path with the name '
+              '"current-best-" and the most recent date.')
+    else:
+        print('Trained a new model that replaced the existing model. '
+              'You can find it in your model path with the name '
+              '"current-best-" and the most recent date.')
 
-    except:
-        print(ERR_MSG)
+    #except:
+        #print(ERR_MSG)
