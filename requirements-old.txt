@@ -32,6 +32,9 @@ Click==7.0
 cloudpickle==0.6.1
 clyent==1.2.2
 colorama==0.4.1
+conda==4.6.1
+conda-build==3.17.6
+conda-verify==3.1.1
 contextlib2==0.5.5
 coverage==4.5.2
 cryptography==2.4.2
@@ -181,7 +184,7 @@ pyasn1-modules==0.2.3
 pycodestyle==2.4.0
 pycosat==0.6.3
 pycparser==2.19
-pycryptodome==3.7.3
+pycrypto==2.6.1
 pycurl==7.43.0.2
 pyflakes==2.0.0
 Pygments==2.3.1
@@ -201,7 +204,7 @@ python-dateutil==2.7.5
 python-dotenv==0.10.1
 pytz==2018.9
 PyWavelets==1.0.1
-pyyaml==5.1b1
+PyYAML==3.13
 pyzmq==17.1.2
 QtAwesome==0.5.3
 qtconsole==4.4.3
