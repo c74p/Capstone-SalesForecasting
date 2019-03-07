@@ -18,12 +18,12 @@ that link, but I found the Google Cloud environment to 'just work' with the
 Fast.ai library in a way that others (e.g. AWS) did not.
 
 With that out of the way:
-1) Clone the repo (you'll need https://git-lfs.github.com/ if you don't already
+**1)** Clone the repo (you'll need https://git-lfs.github.com/ if you don't already
 have it).
 
-2) In your conda/venv environment of choice, pip install -r requirements.txt
+**2)** In your conda/venv environment of choice, pip install -r requirements.txt
 
-3) Check the tests! cd tests; py.test It takes about two minutes on my Google
+**3)** Check the tests! cd tests; py.test It takes about two minutes on my Google
 Cloud instance to run the tests.
 
 	a) If the tests don't pass, git-LFS probably did not download the data 
@@ -31,12 +31,12 @@ Cloud instance to run the tests.
 	manually get them from
 	https://github.com/c74p/Capstone-SalesForecasting
 
-4) Lots of options for use!
+**4)** Lots of options for use!
 
-a) If you just want to run the model and see it in action: go to notebooks/
+**a)** If you just want to run the model and see it in action: go to notebooks/
 models and run the Jupyter notebook
 
-b) If you want to get a prediction: go to src/models and run
+**b)** If you want to get a prediction: go to src/models and run
     python predict_model.py --test_value=<INT> where 0 < INT < 40282
 
 You can add '--context=True' if you want the actual sales value as well as the
@@ -50,7 +50,7 @@ can do that:
 
 Of course, you can create other prediction data if you like.
 
-5) If you want to pass new data to the model and update the model as
+**c)** If you want to pass new data to the model and update the model as
 appropriate, go to src/models and run
     python train_model.py --train_data=<train_data> --valid_data=<valid_data>
 where <train_data> and <valid_data> are valid .csv files.
