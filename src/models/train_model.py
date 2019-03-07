@@ -7,6 +7,7 @@ from fastai.train import fit_one_cycle
 from functools import partial
 import math
 import numpy as np
+import os
 import pandas as pd
 from pathlib import Path
 import preprocess
@@ -43,7 +44,13 @@ def get_pred_new_data_old_model(valid_df: pd.DataFrame,
     to save it to a different file for record-keeping purposes.)
     """
     valid_df = preprocess.preprocess(valid_df)
-    learn = load_learner(path, test=TabularList.from_df(valid_df, path=path))
+
+    # Get the right model to load
+    models = [file for file in os.listdir(path) if
+              file.startswith('current-best')]
+    best_model = sorted(models, reverse=True)[0]
+    learn = load_learner(path=path, fname=best_model,
+                         test=TabularList.from_df(valid_df, path=path))
 
     # get log predictions and compare to actual values
     log_preds, _ = learn.get_preds(ds_type=DatasetType.Test)
@@ -143,7 +150,8 @@ def compare_rmspes(model0, rmspe0, model1, rmspe1):
     return (model1, model0)
 
 
-def save_models(winner: Learner, loser: Learner, path: Path) -> None:
+def save_models(winner: Learner, loser: Learner,
+                path: Path = MODELS_PATH) -> None:
     """Saves the models with appropriate descriptions for later use.
 
     Input: the winning and losing models (not the names, the models themselves
@@ -152,13 +160,14 @@ def save_models(winner: Learner, loser: Learner, path: Path) -> None:
     """
     winner_save_string = \
         'current_best-' + datetime.now().strftime("%Y-%m-%d-%X")
+    print(winner_save_string)
     loser_save_string = \
         'second_best-' + datetime.now().strftime("%Y-%m-%d-%X")
 
-    winner.save(winner_save_string, path=path, with_opt=False)
-    winner.export(winner_save_string, path=path)
-    loser.save(loser_save_string, path=path, with_opt=False)
-    loser.export(loser_save_string, path=path)
+    winner.save(name=winner_save_string, with_opt=False)
+    winner.export(fname=winner_save_string)
+    loser.save(name=loser_save_string, with_opt=False)
+    loser.export(fname=loser_save_string)
 
 
 if __name__ == '__main__':
@@ -175,7 +184,15 @@ if __name__ == '__main__':
         model1, rmspe1 = get_new_model_and_pred(train=train_df,
                                                 valid=valid_df)
         models_to_save = compare_rmspes(model0, rmspe0, model1, rmspe1)
-        save_models(models_to_save)
+        save_models(models_to_save[0], models_to_save[1], MODELS_PATH)
+        if models_to_save[0] == model0:
+            print('Retaining existing model, as it fit the validation data '
+                  'better. You can find it in your model path with the name '
+                  '"current-best-" and the most recent date.')
+        else:
+            print('Trained a new model that replaced the existing model. '
+                  'You can find it in your model path with the name '
+                  '"current-best-" and the most recent date.')
 
     except:
         print(ERR_MSG)
