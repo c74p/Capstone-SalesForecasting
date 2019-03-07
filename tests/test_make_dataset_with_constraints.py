@@ -303,7 +303,7 @@ class Test_Wrangled_Csv(ReferenceTestCase):
     def tearDown(self):
         pass
 
-    # @pytest.mark.skip(reason='not ready yet')
+    @pytest.mark.this
     def test_wrangled_csv_correct(self):
         """Check that the final constructed csv is an exact duplicate of the
         reference csv."""
@@ -330,17 +330,3 @@ class Test_Wrangled_Csv(ReferenceTestCase):
         ref_df['week_start'] = pd.to_datetime(ref_df['week_start'])
 
         self.assertDataFramesEqual(df, ref_df)
-# Example assertions if needed
-# raise NotImplementedError('Insert test code here.')
-#  Examples:
-# self.assertEqual(fp.readline(), 'This is a test')
-# self.assertFalse(os.path.exists('a'))
-# self.assertTrue(os.path.exists('a'))
-# self.assertTrue('already a backup server' in c.stderr)
-# self.assertIn('fun', 'disfunctional')
-# self.assertNotIn('crazy', 'disfunctional')
-# with self.assertRaises(Exception):
-#   raise Exception('test')
-#
-# Unconditionally fail, e.g. in a try block that should raise
-# self.fail('Exception was not raised')

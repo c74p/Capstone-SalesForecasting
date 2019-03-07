@@ -47,7 +47,7 @@ def get_pred_new_data_old_model(valid_df: pd.DataFrame,
 
     # Get the right model to load
     models = [file for file in os.listdir(path) if
-              file.startswith('current-best')]
+              file.startswith('current_best')]
     best_model = sorted(models, reverse=True)[0]
     learn = load_learner(path=path, fname=best_model,
                          test=TabularList.from_df(valid_df, path=path))
@@ -164,19 +164,19 @@ def save_models(winner: Learner, loser: Learner,
     loser_save_string = \
         'second_best-' + datetime.now().strftime("%Y-%m-%d-%X")
 
-    winner.save(name=winner_save_string, with_opt=False)
-    winner.export(fname=winner_save_string)
-    loser.save(name=loser_save_string, with_opt=False)
-    loser.export(fname=loser_save_string)
+    winner.save(name=winner_save_string, path=path, with_opt=False)
+    winner.export(fname=winner_save_string, path=path)
+    loser.save(name=loser_save_string, path=path, with_opt=False)
+    loser.export(fname=loser_save_string, path=path)
 
 
 if __name__ == '__main__':
     args: Dict = {}
+
     try:
         for arg in sys.argv[1:]:
             arg, val = arg.strip('-').split('=')
             args[arg] = val
-        print(args)
 
         train_df = pd.read_csv(DATA_PATH/args['train_data'], low_memory=False)
         valid_df = pd.read_csv(DATA_PATH/args['valid_data'], low_memory=False)
