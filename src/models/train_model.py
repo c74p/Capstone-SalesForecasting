@@ -169,26 +169,26 @@ def save_models(winner: Learner, loser: Learner) -> None:
 if __name__ == '__main__':
     args: Dict = {}
 
-    #try:
-    for arg in sys.argv[1:]:
-        arg, val = arg.strip('-').split('=')
-        args[arg] = val
+    try:
+        for arg in sys.argv[1:]:
+            arg, val = arg.strip('-').split('=')
+            args[arg] = val
 
-    train_df = pd.read_csv(DATA_PATH/args['train_data'], low_memory=False)
-    valid_df = pd.read_csv(DATA_PATH/args['valid_data'], low_memory=False)
-    model0, rmspe0 = get_pred_new_data_old_model(valid_df=valid_df)
-    model1, rmspe1 = get_new_model_and_pred(train=train_df,
-                                            valid=valid_df)
-    models_to_save = compare_rmspes(model0, rmspe0, model1, rmspe1)
-    save_models(models_to_save[0], models_to_save[1])
-    if models_to_save[0] == model0:
-        print('Retaining existing model, as it fit the validation data '
-              'better. You can find it in your model path with the name '
-              '"current-best-" and the most recent date.')
-    else:
-        print('Trained a new model that replaced the existing model. '
-              'You can find it in your model path with the name '
-              '"current-best-" and the most recent date.')
+        train_df = pd.read_csv(DATA_PATH/args['train_data'], low_memory=False)
+        valid_df = pd.read_csv(DATA_PATH/args['valid_data'], low_memory=False)
+        model0, rmspe0 = get_pred_new_data_old_model(valid_df=valid_df)
+        model1, rmspe1 = get_new_model_and_pred(train=train_df,
+                                                valid=valid_df)
+        models_to_save = compare_rmspes(model0, rmspe0, model1, rmspe1)
+        save_models(models_to_save[0], models_to_save[1])
+        if models_to_save[0] == model0:
+            print('Retaining existing model, as it fit the validation data '
+                  'better. You can find it in your model path with the name '
+                  '"current-best-" and the most recent date.')
+        else:
+            print('Trained a new model that replaced the existing model. '
+                  'You can find it in your model path with the name '
+                  '"current-best-" and the most recent date.')
 
-    #except:
-        #print(ERR_MSG)
+    except:
+        print(ERR_MSG)
