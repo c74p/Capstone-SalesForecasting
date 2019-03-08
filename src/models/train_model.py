@@ -150,24 +150,20 @@ def compare_rmspes(model0, rmspe0, model1, rmspe1):
     return (model1, model0)
 
 
-def save_models(winner: Learner, loser: Learner,
-                path: Path = MODELS_PATH) -> None:
+def save_models(winner: Learner, loser: Learner) -> None:
     """Saves ('exports') the models with descriptions for later use.
 
     Input: the winning and losing models (not the names, the models themselves
-    -- probably called something like 'learner'). Also, the model path.
+    -- probably called something like 'learner').
     Output: no return value.  Exports the models to the path.
     """
     winner_save_string = \
         'current_best-' + datetime.now().strftime("%Y-%m-%d-%X")
-    print(winner_save_string)
     loser_save_string = \
         'second_best-' + datetime.now().strftime("%Y-%m-%d-%X")
 
-    print(type(path))
-    print(type(winner_save_string))
-    winner.export(fname=(path / winner_save_string))
-    loser.export(fname=(path / loser_save_string))
+    winner.export(fname=winner_save_string)
+    loser.export(fname=loser_save_string)
 
 
 if __name__ == '__main__':
@@ -184,7 +180,7 @@ if __name__ == '__main__':
     model1, rmspe1 = get_new_model_and_pred(train=train_df,
                                             valid=valid_df)
     models_to_save = compare_rmspes(model0, rmspe0, model1, rmspe1)
-    save_models(models_to_save[0], models_to_save[1], MODELS_PATH)
+    save_models(models_to_save[0], models_to_save[1])
     if models_to_save[0] == model0:
         print('Retaining existing model, as it fit the validation data '
               'better. You can find it in your model path with the name '

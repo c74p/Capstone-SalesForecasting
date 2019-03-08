@@ -175,7 +175,6 @@ class TestTrainModel(TestCase):
         assert train_model.compare_rmspes(winner[0], winner[1], loser[0],
                                           loser[1]) == ('winner', 'loser')
 
-    @pytest.mark.this
     @mock.patch.object(train_model.Learner, 'save', side_effects=None)
     @mock.patch.object(train_model.Learner, 'export', side_effects=None)
     def test_save_models(self, mock_Learner_export, mock_Learner_save):
@@ -193,10 +192,8 @@ class TestTrainModel(TestCase):
         loser = load_learner(path=self.model_path,
                              fname='bad_model_do_not_use_0.0465.pkl')
 
-        with tempfile.TemporaryDirectory() as save_path:
+        # Call the function
+        train_model.save_models(winner, loser)
 
-            # Call the function
-            train_model.save_models(winner, loser, Path(save_path))
-
-            # Assertions
-            mock_Learner_export.assert_called()
+        # Assertions
+        mock_Learner_export.assert_called()
