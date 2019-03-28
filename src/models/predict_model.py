@@ -1,6 +1,7 @@
 from fastai.basic_train import Learner, load_learner
 from fastai.tabular import *
 import math
+import os
 import pandas as pd
 from pathlib import Path
 import preprocess
@@ -19,7 +20,7 @@ ERR_MSG = \
      "is a .csv file in data/interim/ with a header and a single row of "
      "data.\n")
 
-MAX_TEST_VALUE = 40282
+MAX_TEST_VALUE = 40281
 MIN_TEST_VALUE = 0
 
 
@@ -29,8 +30,14 @@ def get_pred_single_val(data: pd.Series, path: Path) -> float:
     Input: a pd.Series for the data and the path for the model.
     Output: the predicted sales for that row of data.
     """
+    # Get the right model to load                                               
+    models = [file for file in os.listdir(path) if
+              file.startswith('current_best')]
+    best_model = sorted(models, reverse=True)[0]
+
     # Load the model and get the prediction
-    learn = load_learner(path)
+    #learn = load_learner(path/best_model)
+    learn = load_learner(path=path, fname=best_model)
 
     log_pred_tens, _, _ = learn.predict(data)
 
@@ -80,36 +87,28 @@ def predict(data_path=DATA_PATH, models_path=MODELS_PATH, **kwargs) -> str:
 
     if 'test_value' in kwargs:
 
-        try:
-            # Get the test dataframe and process it
-            test_df = pd.read_csv(data_path/'test_data.csv', low_memory=False)
-            test_df = preprocess.preprocess(test_df)
+        # Get the test dataframe and process it
+        test_df = pd.read_csv(data_path/'test_data.csv', low_memory=False)
+        test_df = preprocess.preprocess(test_df)
 
-            # Get our example row and get the prediction from it
-            example = test_df.iloc[kwargs['test_value']]
-            prediction = get_pred_single_val(example, models_path)
+        # Get our example row and get the prediction from it
+        example = test_df.iloc[kwargs['test_value']]
+        prediction = get_pred_single_val(example, models_path)
 
-            if 'context' in kwargs and kwargs['context']:
-                return ('The predicted value is ' + str(prediction) + ' and '
-                        'the actual value is ' + str(example.sales) + '.')
-            return str(prediction)
-
-        except:
-            return ERR_MSG
+        if 'context' in kwargs and kwargs['context']:
+            return ('The predicted value is ' + str(prediction) + ' and '
+                    'the actual value is ' + str(example.sales) + '.')
+        return str(prediction)
 
     if 'new_value' in kwargs:
 
-        try:
-            # Convert our series to a dataframe so we can process it
-            df = pd.read_csv(data_path/kwargs['new_value'])
-            df = preprocess.preprocess(df)
+        # Convert our series to a dataframe so we can process it
+        df = pd.read_csv(data_path/kwargs['new_value'])
+        df = preprocess.preprocess(df)
 
-            prediction = get_pred_single_val(df.iloc[0], models_path)
+        prediction = get_pred_single_val(df.iloc[0], models_path)
 
-            return str(prediction)
-
-        except:
-            return ERR_MSG
+        return str(prediction)
 
 
 if __name__ == '__main__':

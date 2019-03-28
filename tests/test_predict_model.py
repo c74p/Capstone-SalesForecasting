@@ -111,7 +111,7 @@ class TestPredictModel(TestCase):
         res = predict_model.predict(data_path=self.data_path,
                                     models_path=self.models_path,
                                     test_value=0)
-        assert abs(float(res) - 4118.317561157504) < 0.01
+        assert abs(float(res) - 4198.543914975132) < 0.01
 
     def test_correct_test_value_call_with_context_works(self):
         """Dumb reference test: calling predict with test_value=0 and
@@ -121,7 +121,7 @@ class TestPredictModel(TestCase):
         res = predict_model.predict(data_path=self.data_path,
                                     models_path=self.models_path,
                                     test_value=0, context=True)
-        assert res == ('The predicted value is 4118.318491197586 and the '
+        assert res == ('The predicted value is 4198.543914975132 and the '
                        'actual value is 4097.0.')
 
     def test_correct_new_value_call_works(self):
@@ -131,8 +131,7 @@ class TestPredictModel(TestCase):
         faster."""
         # Fake a test_value from the existing pre-made dataframe
         # Use .iloc[0] to make sure we're using a Series per expectations
-        #res = predict_model.predict(new_value=self.df.iloc[0])
         res = predict_model.predict(data_path=self.data_path,
                                     models_path=self.models_path,
                                     new_value='example_data_row.csv')
-        assert abs(float(res) - 4118.317561157504) < 0.01
+        assert abs(float(res) - 4198.543914975132) < 0.01

@@ -110,7 +110,7 @@ def get_new_model_and_pred(train: pd.DataFrame, valid: pd.DataFrame,
                                                   EarlyStoppingCallback,
                                                   mode='min',
                                                   monitor='exp_rmspe',
-                                                  min_delta=0.01, patience=1),
+                                                  min_delta=0.01, patience=0),
                                           partial(callbacks.tracker.
                                                   SaveModelCallback,
                                                   monitor='exp_rmspe',

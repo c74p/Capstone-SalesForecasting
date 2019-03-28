@@ -18,8 +18,9 @@ def preprocess(inp_df: pd.DataFrame) -> pd.DataFrame:
     # Sort by date since we have a timeseries
     df.sort_values(by=['date', 'store'], inplace=True)
 
-    # Drop week_start since add_datepart() will do that
+    # Drop week_start and day_of_week since add_datepart() will do that
     df.drop('week_start', axis='columns', inplace=True)
+    df.drop('day_of_week', axis='columns', inplace=True)
 
     # If our whole df has sales == 0, it must be a single-row df used for a
     # single prediction, so just take the first row

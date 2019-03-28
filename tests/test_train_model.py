@@ -108,7 +108,7 @@ class TestTrainModel(TestCase):
         # later when the test gets updated)
         _, res = train_model.get_pred_new_data_old_model(self.valid_df,
                                                          self.model_path)
-        assert abs(res - 0.048635791657389196) < 0.001
+        assert abs(res - 0.038976357510878676) < 0.001
 
     @patch('src.models.train_model.preprocess.preprocess')
     @patch('src.models.train_model.load_learner')
@@ -154,6 +154,7 @@ class TestTrainModel(TestCase):
             train_model.get_new_model_and_pred(train=self.df[:2],
                                                valid=self.df[2:],
                                                path=self.model_path)
+
         mock_preprocess.assert_called()
         mock_gather_args.assert_called()
         mock_tabular_list.from_df.assert_called_with(mock_preprocess(),
@@ -185,12 +186,11 @@ class TestTrainModel(TestCase):
         # should be rewritten to be more specific (ie useful).
 
         # fake winner/loser models and the names they should be saved with
-        winner = load_learner(self.model_path)
+        winner = load_learner(self.model_path, fname='current_best')
         # fname below could be replaced by any other not-as-good model
         # Even better would be to replace this with a pre-generated model as
         # a pytest funcarg
-        loser = load_learner(path=self.model_path,
-                             fname='bad_model_do_not_use_0.0465.pkl')
+        loser = load_learner(path=self.model_path, fname='current_best')
 
         # Call the function
         train_model.save_models(winner, loser)

@@ -41,13 +41,14 @@ class Test_Preprocessing(TestCase):
     def test_preprocessing(self):
         """Test the preprocess() function from src/models/preprocess.py"""
         df = preprocess.preprocess(self.df)
-        assert (df == df.sort_values(by=['Elapsed', 'store'])).all().all()
         assert 'week_start' not in df.columns
+        assert 'day_of_week' not in df.columns
         assert (len(df[df.sales == 0])) == 0
         for col in ['Year', 'Month', 'Week', 'Day', 'Dayofweek', 'Dayofyear',
                     'Is_month_end', 'Is_month_start', 'Is_quarter_end',
                     'Is_quarter_start', 'Is_year_end', 'Is_year_start']:
             assert col in df.columns
+        # assert (df == df.sort_values(by=['Elapsed', 'store'])).all().all()
 
     def test_gather_args(self):
         """Test the gather_args function from src/models/preprocess.py"""
@@ -64,7 +65,7 @@ class Test_Preprocessing(TestCase):
                  'min_dew_point_c', 'Elapsed', 'precipitationmm',
                  'competition_open_since_month', 'max_temperature_c',
                  'dew_point_c', 'mean_temperature_c', 'promo',
-                 'mean_dew_point_c', 'wind_dir_degrees', 'open', 'day_of_week',
+                 'mean_dew_point_c', 'wind_dir_degrees', 'open', 
                  'Dayofyear', 'min_humidity', 'customers', 'promo2',
                  'max_wind_speed_km_h', 'sales', 'mean_sea_level_pressureh_pa',
                  'min_sea_level_pressureh_pa', 'school_holiday',
