@@ -4,6 +4,10 @@ Capstone-SalesForecasting
 Sales Forecasting and Data Science project on the Rossmann (German retailer)
 data set
 
+**For a non-code project summary:**
+* Slides: https://bit.ly/2H89bMU
+* Written report: https://bit.ly/2CdNOFK
+
 Items in this README:
 - How to run this repo
 - A note on Cauldron vs Jupyter notebooks
