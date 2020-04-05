@@ -153,7 +153,7 @@ openpyxl==2.5.12
 packaging==18.0
 pandas==0.23.4
 pandocfilters==1.4.2
-parso==0.3.1
+parso==0.6.2
 partd==0.3.9
 path.py==11.5.0
 pathlib2==2.3.3
